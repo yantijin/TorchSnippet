@@ -14,6 +14,9 @@ __all__ = [
 
     'to_numpy',
 
+    # variable
+    'variable',
+
     # shape utils
     'squeeze', 'flatten_to_ndims', 'unflatten_from_ndims',
     'broadcast_to', 'broadcast_shape',
@@ -103,9 +106,11 @@ def to_numpy(input: Tensor) -> np.ndarray:
 
 
 # shape utils
-def squeeze(input: Tensor, axis: Optional[List[int]] = None) -> Tensor:
+def squeeze(input: Tensor, axis: Optional[Union[int,List[int]]] = None) -> Tensor:
     if axis is not None:
-        if len(axis) == 1:
+        if isinstance(axis, int):
+            return torch.squeeze(input, axis)
+        elif len(axis) == 1:
             return torch.squeeze(input, axis[0])
         else:
             old_shape = input.shape
@@ -380,7 +385,7 @@ def as_tensor(data,
     return ret
 
 
-def zeros(shape: List[int], dtype: str = torch.float32) -> Tensor:
+def zeros(shape: List[int], dtype: str = 'float32') -> Tensor:
     if dtype == 'float32':
         target_dtype = torch.float32
     elif dtype == 'int32':
@@ -392,13 +397,15 @@ def zeros(shape: List[int], dtype: str = torch.float32) -> Tensor:
 
 # reduction calculation
 def reduce_sum(input: Tensor,
-               axis: Optional[List[int]] = None,
+               axis: Optional[Union[List[int], int]] = None,
                keepdims: bool = False) -> Tensor:
     if axis is None:
         if keepdims:
             return torch.sum(input).reshape([1] * len(input.shape))
         else:
             return torch.sum(input)
+    elif isinstance(axis, int):
+        return torch.sum(input, dim=axis, keepdim=keepdims)
     else:
         if len(axis) == 0:
             return input
@@ -408,13 +415,15 @@ def reduce_sum(input: Tensor,
 
 
 def reduce_mean(input: Tensor,
-                axis: Optional[List[int]] = None,
+                axis: Optional[Union[List[int], int]] = None,
                 keepdims: bool = False) -> Tensor:
     if axis is None:
         if keepdims:
             return torch.mean(input).reshape([1] * len(input.shape))
         else:
             return torch.mean(input)
+    elif isinstance(axis, int):
+        return torch.mean(input, dim=axis, keepdim=keepdims)
     else:
         if len(axis) == 0:
             return input
@@ -424,13 +433,15 @@ def reduce_mean(input: Tensor,
 
 
 def reduce_max(input: Tensor,
-               axis: Optional[List[int]] = None,
+               axis: Optional[Union[int,List[int]]] = None,
                keepdims: bool = False) -> Tensor:
     if axis is None:
         if keepdims:
             return torch.max(input).reshape([1] * len(input.shape))
         else:
             return torch.max(input)
+    elif isinstance(axis, int):
+        return torch.max(input, dim=axis, keepdim=keepdims)[0]
     else:
         if len(axis) == 0:
             return input
@@ -446,13 +457,15 @@ def reduce_max(input: Tensor,
 
 
 def reduce_min(input: Tensor,
-               axis: Optional[List[int]] = None,
+               axis: Optional[Union[int, List[int]]] = None,
                keepdims: bool = False) -> Tensor:
     if axis is None:
         if keepdims:
             return torch.min(input).reshape([1] * len(input.shape))
         else:
             return torch.min(input)
+    elif isinstance(axis, int):
+        return torch.min(input, dim=axis, keepdim=keepdims)[0]
     else:
         if len(axis) == 0:
             return input
@@ -468,7 +481,7 @@ def reduce_min(input: Tensor,
 
 
 def log_sum_exp(input: Tensor,
-                axis: Optional[List[int]] = None,
+                axis: Optional[Union[List[int], int]] = None,
                 keepdims: bool = False) -> Tensor:
     if axis is None:
         axis = list(range(0, len(input.shape)))
@@ -476,6 +489,8 @@ def log_sum_exp(input: Tensor,
             return torch.logsumexp(input, dim=axis, keepdim=True)
         else:
             return torch.logsumexp(input, dim=axis, keepdim=False)
+    elif isinstance(axis, int):
+        return torch.logsumexp(input, dim=axis, keepdim=keepdims)
     else:
         if len(axis) == 0:
             raise ValueError('`axis` must not be an empty list.')
@@ -484,9 +499,9 @@ def log_sum_exp(input: Tensor,
 
 
 def log_mean_exp(input: Tensor,
-                 axis: Optional[List[int]] = None,
+                 axis: Optional[Union[int, List[int]]] = None,
                  keepdims: bool = False) -> Tensor:
-    if axis is not None:
+    if axis is not None and not isinstance(axis, int):
         if len(axis) == 0:
             raise ValueError('`axis` must not be an empty list.')
     x_max_keepdims = reduce_max(input, axis=axis, keepdims=True)
@@ -502,7 +517,7 @@ def log_mean_exp(input: Tensor,
 
 
 def norm_except_axis(input: Tensor,
-                     axis: Optional[List[int]],
+                     axis: Optional[Union[int, List[int]]],
                      p: float = 2,
                      keepdims: bool = False) -> Tensor:
     """
@@ -523,6 +538,15 @@ def norm_except_axis(input: Tensor,
     r = input.dim()
     if axis is None:
         axis_reduce = None
+    elif isinstance(axis, int):
+        a = axis
+        if a < -r or a >= r:
+            raise ValueError(
+                f'`axis` out of range: `axis` is {axis}, '
+                f'while the shape of `input` is {input.shape}.')
+        if a < 0:
+            a = a + r
+        axis_reduce = list(range(0, a)) + list(range(a + 1, r))
     elif len(axis) == 1:
         # compute the axis to reduce in a fast manner
         a = axis[0]

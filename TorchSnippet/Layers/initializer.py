@@ -1,9 +1,9 @@
 import math
 from typing import *
-from TorchSnippet.typing_ import *
+from ..typing_ import *
 import torch
 import numpy as np
-from TorchSnippet import core
+from .. import core
 from torch.utils.hooks import RemovableHandle
 from torch.jit import ScriptModule
 

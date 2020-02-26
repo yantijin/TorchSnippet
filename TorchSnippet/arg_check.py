@@ -7,7 +7,7 @@ __all__ = [
     'get_layer_from_layer_or_factory'
 ]
 
-# 如果输入为单值或生成器， 变成List， 保证每个元素大于0，长度和spatial_ndims相同
+# 如果输入为单值或列表， 变成List， 保证每个元素大于0，长度和spatial_ndims相同
 def validate_conv_size(name: str,
                        value: Union[int, Sequence[int]],
                        spatial_ndims: int

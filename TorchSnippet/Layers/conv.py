@@ -5,7 +5,8 @@ from ..arg_check import *
 from ..typing_ import *
 from .gated import *
 from .base import Sequential, Linear, DEFAULT_WEIGHT_INIT, DEFAULT_BIAS_INIT, DEFAULT_GATE_BIAS, \
-    LinearConv1d, LinearConv2d, LinearConv3d, LinearConvTranspose1d, LinearConvTranspose2d, LinearConvTranspose3d
+    LinearConv1d, LinearConv2d, LinearConv3d, LinearConvTranspose1d, LinearConvTranspose2d, LinearConvTranspose3d, \
+    IS_CHANNEL_LAST
 
 __all__ = [
     'Dense',
@@ -135,7 +136,7 @@ class ConvNd(Sequential):
                 data_init=data_init,
             ),
             out_features=out_channels,
-            out_feature_axis=-1 if T.IS_CHANNEL_LAST else -(spatial_ndims + 1),
+            out_feature_axis=-1 if IS_CHANNEL_LAST else -(spatial_ndims + 1),
             normalizer=normalizer,
             activation=activation,
             gated=gated,
@@ -228,7 +229,7 @@ class ConvTransposeNd(Sequential):
                 data_init=data_init,
             ),
             out_features=out_channels,
-            out_feature_axis=-1 if T.IS_CHANNEL_LAST else -(spatial_ndims + 1),
+            out_feature_axis=-1 if IS_CHANNEL_LAST else -(spatial_ndims + 1),
             normalizer=normalizer,
             activation=activation,
             gated=gated,

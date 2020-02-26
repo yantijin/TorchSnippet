@@ -1,15 +1,16 @@
 import torch
 import torch.nn as nn
 from typing import *
-from TorchSnippet.typing_ import *
+from ..typing_ import *
 from . import initializer
 from ..arg_check import *
-from TorchSnippet.core import variable, assign_data, add_parameter, \
+from ..core import variable, assign_data, add_parameter, \
     norm_except_axis, as_tensor, get_dtype, flatten_to_ndims, unflatten_from_ndims, \
     pad
 
 __all__ = [
     'DEFAULT_BIAS_INIT', 'DEFAULT_WEIGHT_INIT', 'EPSILON', 'DEFAULT_GATE_BIAS',
+    'IS_CHANNEL_LAST',
     # Paramstores
     'BaseParamStore', 'SimpleParamStore', 'NormedWeightStore',
     'weight_norm_decompose', 'NormedAndScaledWeightStore',
@@ -39,7 +40,7 @@ DEFAULT_WEIGHT_INIT = initializer.kaming_uniform
 DEFAULT_BIAS_INIT = initializer.zeros
 EPSILON = 1e-5
 DEFAULT_GATE_BIAS: float = 2.0
-
+IS_CHANNEL_LAST = False
 
 # ---- weight wrapper: a simple weight, or a normed weight ----
 class BaseParamStore(Module):
