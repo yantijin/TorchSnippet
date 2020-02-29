@@ -5,7 +5,7 @@ import numpy as np
 from ..Layers import BaseLayer
 from ..typing_ import *
 from typing import *
-from ..core import broadcast_to
+from ..core import broadcast_to, add_buffer, add_parameter, as_tensor
 
 __all__ = [
     'BaseFlow', 'FeatureMappingFlow', 'InverseFlow', 'SequentialFlow',
@@ -323,7 +323,7 @@ class LooseInvertibleMatrix(InvertibleMatrix):
     def __init__(self, seed_matrix, dtype=torch.float32):
         initial_matrix = la.qr(seed_matrix)[0] # 获取正交矩阵
         super().__init__(initial_matrix.shape[0])
-        self.matrix = nn.Parameter(torch.as_tensor(torch.from_numpy(seed_matrix), dtype=dtype), requires_grad=True)
+        add_parameter(self, 'matrix', as_tensor(seed_matrix, dtype=dtype, force_copy=True))
 
     def forward(self, inverse=False, compute_log_det=True):
         '''
@@ -355,13 +355,13 @@ class StrictInvertibleMatrix(InvertibleMatrix):
         initial_sign = np.sign(initial_s)
         initial_log_s = np.log(np.maximum(np.abs(initial_s), epsilon))
         initial_U = np.triu(initial_U, k=1) # 上三角阵，对角线元素为0
-        self.register_buffer('P', torch.as_tensor(torch.from_numpy(initial_P), dtype=dtype))
-        self.pre_L = nn.Parameter(torch.as_tensor(torch.from_numpy(initial_L), dtype=dtype), requires_grad=True)
-        self.register_buffer('L_mask', torch.as_tensor(torch.from_numpy(np.tril(np.ones(matrix_shape), k=-1)), dtype=dtype))
-        self.pre_U = nn.Parameter(torch.as_tensor(torch.from_numpy(initial_U), dtype=dtype), requires_grad=True)
-        self.register_buffer('U_mask', torch.as_tensor(torch.from_numpy(np.triu(np.ones(matrix_shape), k=1)), dtype=dtype))
-        self.register_buffer('sign', torch.as_tensor(torch.from_numpy(initial_sign), dtype=dtype))
-        self.log_s = nn.Parameter(torch.as_tensor(torch.from_numpy(initial_log_s), dtype=dtype), requires_grad=True)
+        add_buffer(self, 'P', as_tensor(initial_P, dtype=dtype, force_copy=True))
+        add_parameter(self, 'pre_L', as_tensor(initial_L, dtype=dtype, force_copy=True))
+        add_buffer(self, 'L_mask', as_tensor(np.tril(np.ones(matrix_shape), k=-1), dtype=dtype, force_copy=True))
+        add_parameter(self, 'pre_U', as_tensor(initial_U, dtype=dtype, force_copy=True))
+        add_buffer(self, 'U_mask', as_tensor(np.triu(np.ones(matrix_shape), k=1), dtype=dtype, force_copy=True))
+        add_buffer(self, 'sign', as_tensor(initial_sign, dtype=dtype, force_copy=True))
+        add_parameter(self, 'log_s', as_tensor(initial_log_s, dtype=dtype, force_copy=True))
 
     def forward(self, inverse=False, compute_log_det=True):
         P = self.P

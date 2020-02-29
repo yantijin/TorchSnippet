@@ -5,6 +5,11 @@ from ..Layers import initializer
 from ..core import variable, to_numpy, flatten_to_ndims, unflatten_from_ndims
 import torch
 
+__all__ = [
+    'InvertibleDense', 'InvertibleConv1d',
+    'InvertibleConv2d', 'InvertibleConv3d'
+]
+
 class InvertibleLinearNd(FeatureMappingFlow):
     """Base class for invertible linear transformation flows."""
 

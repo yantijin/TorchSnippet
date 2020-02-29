@@ -10,7 +10,7 @@ __all__ = [
     'set_train_mode',
 
 
-    'pad',
+    'pad', 'index_select',
 
     'to_numpy',
 
@@ -97,6 +97,30 @@ def pad(input: torch.Tensor,
     for i in range(len(padding) - 1, -1, -1):
         pad.extend(padding[i])
     return torch.nn.functional.pad(input, pad=pad, value=value)
+
+
+def index_select(input: Tensor, indices: Tensor, axis: int) -> Tensor:
+    x_shape = input.shape
+    i_shape = indices.shape
+
+    if axis < 0:
+        axis += len(x_shape)
+    if axis < 0 or axis >= len(x_shape):
+        raise ValueError('`axis` out of range: x.shape {} vs axis {}'.
+                         format(input.shape, axis))
+
+    if len(i_shape) == 0:
+        y = torch.index_select(input, dim=axis, index=indices.reshape([1]))
+        y = y.reshape(x_shape[:axis] + x_shape[axis + 1:])
+
+    elif len(i_shape) == 1:
+        y = torch.index_select(input, dim=axis, index=indices)
+
+    else:
+        y = torch.index_select(input, dim=axis, index=indices.flatten())
+        y = y.reshape(x_shape[:axis] + i_shape + x_shape[axis + 1:])
+
+    return y
 
 
 def to_numpy(input: Tensor) -> np.ndarray:
