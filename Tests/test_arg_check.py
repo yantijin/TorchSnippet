@@ -1,4 +1,4 @@
-import  pytest
+import pytest
 from TorchSnippet.arg_check import *
 from TorchSnippet.typing_ import PaddingMode
 

@@ -385,13 +385,18 @@ def as_tensor(data,
     return ret
 
 
-def zeros(shape: List[int], dtype: str = 'float32') -> Tensor:
-    if dtype == 'float32':
-        target_dtype = torch.float32
-    elif dtype == 'int32':
-        target_dtype = torch.int32
+def zeros(shape: List[int], dtype: Union[str, torch.dtype] = 'float32') -> Tensor:
+    if isinstance(dtype, str):
+        if dtype == 'float32':
+            target_dtype = torch.float32
+        elif dtype == 'int32':
+            target_dtype = torch.int32
+        else:
+            target_dtype = {'int8': torch.int8, 'uint8': torch.uint8, 'int16': torch.int16, 'int64': torch.int64, 'float16': torch.float16, 'float64': torch.float64, 'bool': torch.bool}[dtype]
+    elif isinstance(dtype, torch.dtype):
+        target_dtype = dtype
     else:
-        target_dtype = {'int8': torch.int8, 'uint8': torch.uint8, 'int16': torch.int16, 'int64': torch.int64, 'float16': torch.float16, 'float64': torch.float64, 'bool': torch.bool}[dtype]
+        raise ValueError('`dtype` should be a str or torch.dtype, please check your inputs')
     return torch.zeros(shape, dtype=target_dtype)
 
 

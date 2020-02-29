@@ -785,8 +785,8 @@ class BatchNorm3d(torch.nn.BatchNorm3d):
         super().__init__(num_features, eps=epsilon, momentum=momentum)
 
     def _check_input_dim(self, input: Tensor):
-        if input.dim != 5:
-            raise ValueError('`BatchNorm2d` only supports 5d input, '
+        if input.dim() != 5:
+            raise ValueError('`BatchNorm3d` only supports 5d input, '
                              'but the input shape is {}'.format(list(input.shape)))
 
 

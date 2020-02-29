@@ -1,3 +1,3 @@
 from .base import *
-from .invertibleLayer import *
+from .invertible import *
 from .scale import *
