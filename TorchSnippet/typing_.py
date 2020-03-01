@@ -7,7 +7,7 @@ import numpy as np
 __all__ = [
     'Tensor', 'Module',
     # # enums
-    'WeightNormMode', 'PaddingMode', #'ActNormScaleType',
+    'WeightNormMode', 'PaddingMode', 'ActNormScaleType',
 
     # tensor types
     'TensorOrData', # TODO: 将随机tensor加进去
@@ -59,14 +59,14 @@ class PaddingMode(str, Enum):
     """The default padding mode is "none"."""
 
 
-# class ActNormScaleType(str, Enum):
-#     """Scale type of :class:`tk.layers.ActNorm` and :class:`tk.flows.ActNorm`."""
-#
-#     EXP = 'exp'
-#     LINEAR = 'linear'
-#
-#
-# # tensor types
+class ActNormScaleType(str, Enum):
+    """Scale type of :class:`tk.layers.ActNorm` and :class:`tk.flows.ActNorm`."""
+
+    EXP = 'exp'
+    LINEAR = 'linear'
+
+
+# tensor types
 TensorOrData = Union['Tensor',  np.ndarray, float, int]
 # """Types that can be casted into `T.Tensor` via `T.as_tensor`."""
 #

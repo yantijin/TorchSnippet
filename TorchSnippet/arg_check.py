@@ -1,10 +1,16 @@
 import torch
 from typing import *
+from .typing_ import *
+import math
 
 __all__ = [
+    # conv utils
     'validate_conv_size', 'validate_positive_int', 'validate_padding',
     'maybe_as_symmetric_padding', 'validate_output_padding',
-    'get_layer_from_layer_or_factory'
+    # factory method
+    'get_layer_from_layer_or_factory',
+    # assert utils
+    'is_finite', 'is_all', 'assert_finite'
 ]
 
 # 如果输入为单值或列表， 变成List， 保证每个元素大于0，长度和spatial_ndims相同
@@ -125,6 +131,23 @@ def get_layer_from_layer_or_factory(arg_name: str,
     else:
         raise TypeError(f'`{arg_name}` is required to be a layer or a '
                         f'layer factory: got {layer_or_layer_factory!r}.')
+
+
+def is_finite(input: Tensor) -> Tensor:
+    if not input.is_floating_point():
+        return torch.ones_like(input).to(torch.bool)
+    return (input == input) & (input.abs() != math.inf)
+
+
+def is_all(condition: Tensor) -> bool:
+    return bool(torch.all(condition).item())
+
+
+def assert_finite(input: Tensor, message: str) -> Tensor:
+    if not is_all(is_finite(input)):
+        raise ValueError('Infinity or NaN value encountered: {}'.
+                         format(message))
+    return input
 
 # ######
 from .typing_ import *

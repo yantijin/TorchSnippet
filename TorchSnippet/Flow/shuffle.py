@@ -4,11 +4,6 @@ from TorchSnippet.typing_ import *
 from TorchSnippet.Flow import FeatureMappingFlow
 from TorchSnippet.core import add_parameter, index_select
 
-# from .. import tensor as T
-# from ..tensor import Tensor, argsort, index_select, as_tensor_backend
-# from ..tensor.random import random_permutation
-# from ..layers import *
-# from .core import *
 
 __all__ = [
     'FeatureShufflingFlow', 'FeatureShufflingFlow1d', 'FeatureShufflingFlow2d',

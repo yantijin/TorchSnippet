@@ -35,7 +35,10 @@ __all__ = [
     'fill', 'fill_zeros', 'assign_data',
 
     # tensor constructors
-    'zeros', 'as_tensor'
+    'zeros', 'as_tensor',
+
+    # mean std
+    'calculate_mean_and_var'
 ]
 
 # ---- utils ----
@@ -620,3 +623,25 @@ def get_dtype(input: Tensor) -> str:
         return 'int32'
     else:
         return {torch.int8: 'int8', torch.uint8: 'uint8', torch.int16: 'int16', torch.int64: 'int64', torch.float16: 'float16', torch.float64: 'float64', torch.bool: 'bool'}[input.dtype]
+
+
+def calculate_mean_and_var(input: Tensor,
+                           axis: Optional[List[int]] = None,
+                           keepdims: bool = False,
+                           unbiased: bool = True) -> Tuple[Tensor, Tensor]:
+    # compute mean & var
+    mean = reduce_mean(input, axis=axis, keepdims=True)
+    var = reduce_mean((input - mean) ** 2, axis=axis, keepdims=keepdims)
+    if not keepdims:
+        mean = mean.reshape(var.shape)
+
+    reduce_size = input.numel() // mean.numel()
+    if reduce_size < 2:
+        raise RuntimeError(
+            'Variance can only be calculated with at least 2 samples.')
+
+    # obtain unbiased estimator from the biased estimator by multiply n / (n-1)
+    if unbiased:
+        var = var * (float(reduce_size) / (reduce_size - 1.))
+
+    return mean, var
