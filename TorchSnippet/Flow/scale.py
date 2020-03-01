@@ -56,7 +56,7 @@ class BaseScale(BaseLayer):
 
         scale, log_scale = self._scale_and_log_scale(
             pre_scale, inverse, compute_log_det)
-        output = input * scale
+        output = input * scale # 注意是点乘！
 
         if log_scale is not None:
             log_scale = broadcast_to(
