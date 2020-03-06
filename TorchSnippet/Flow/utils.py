@@ -1,11 +1,14 @@
 from ..typing_ import *
 from typing import *
+import torch
 
 
 __all__ = [
     'depth_to_space1d', 'depth_to_space2d', 'depth_to_space3d',
     'space_to_depth1d', 'space_to_depth2d', 'space_to_depth3d',
     'reshape_tail',
+
+    '_flip'
 ]
 
 
@@ -218,3 +221,10 @@ def reshape_tail(input: Tensor, ndims: int, shape: List[int]) -> Tensor:
         )
     left_shape = input_shape[: input_rank - ndims]
     return input.reshape(left_shape + shape)
+
+
+
+def _flip(x, dim):
+    indices = [slice(None)] * x.dim()
+    indices[dim] = torch.arange(x.size(dim) - 1, -1, -1, dtype=torch.long, device=x.device)
+    return x[tuple(indices)]

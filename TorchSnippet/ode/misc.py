@@ -53,3 +53,23 @@ def _flatten_convert_none_to_zeros(sequence, like_sequence):
         for p, q in zip(sequence, like_sequence)
     ]
     return torch.cat(flat) if len(flat) > 0 else torch.tensor([])
+
+
+def _possibly_nonzero(x):
+    return isinstance(x, torch.Tensor) or x != 0
+
+
+def _scaled_dot_product(scale, xs, ys):
+    """Calculate a scaled, vector inner product between lists of Tensors."""
+    # Using _possibly_nonzero lets us avoid wasted computation.
+    return sum([(scale * x) * y for x, y in zip(xs, ys) if _possibly_nonzero(x) or _possibly_nonzero(y)])
+
+
+def _convert_to_tensor(a, dtype=None, device=None):
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor(a)
+    if dtype is not None:
+        a = a.type(dtype)
+    if device is not None:
+        a = a.to(device)
+    return a

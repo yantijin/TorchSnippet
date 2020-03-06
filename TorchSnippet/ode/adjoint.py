@@ -102,6 +102,15 @@ class OdeintAdjointMethod(torch.autograd.Function):
 
             return (*adj_y, None, time_vjps, adj_params, None, None, None, None, None)
 
+class TupleFunc(nn.Module):
+
+    def __init__(self, base_func):
+        super(TupleFunc, self).__init__()
+        self.base_func = base_func
+
+    def forward(self, t, y):
+        return (self.base_func(t, y[0]),)
+
 
 def odeint_adjoint(func, y0, t, rtol=1e-6, atol=1e-12, method=None, options=None):
 
@@ -112,16 +121,6 @@ def odeint_adjoint(func, y0, t, rtol=1e-6, atol=1e-12, method=None, options=None
 
     tensor_input = False
     if torch.is_tensor(y0):
-
-        class TupleFunc(nn.Module):
-
-            def __init__(self, base_func):
-                super(TupleFunc, self).__init__()
-                self.base_func = base_func
-
-            def forward(self, t, y):
-                return (self.base_func(t, y[0]),)
-
         tensor_input = True
         y0 = (y0,)
         func = TupleFunc(func)
@@ -137,13 +136,16 @@ def odeint_adjoint(func, y0, t, rtol=1e-6, atol=1e-12, method=None, options=None
 class NeuralODE(BaseLayer):
     def __init__(self, func):
         super(NeuralODE, self).__init__()
-
         if not isinstance(func, nn.Module):
             raise ValueError('func is required to be an instance of nn.Module.')
-        self.func = func
+        self.func = TupleFunc(func)
 
     def forward(self, y0, t, rtol=1e-6, atol=1e-12, method=None, options=None):
-        flat_parameters = _flatten(self.fun.parameters())
+        if not torch.is_tensor(y0):
+            raise ValueError ('y0 should be an tensor input')
+        y0 = (y0,)
+        flat_parameters = _flatten(self.func.parameters())
+        # 原本的逻辑是多个个func对于多个y_0 同时计算并进行迭代计算，对于一个输入和函数来说需要做成tuple的形式
         ys = OdeintAdjointMethod.apply(*y0, self.func, t, flat_parameters, rtol, atol, method, options)
 
         return ys[0]

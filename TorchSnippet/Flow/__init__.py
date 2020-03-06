@@ -6,3 +6,4 @@ from .shuffle import *
 from .reshape import *
 from .utils import *
 from .actnorm import *
+from .nf import *

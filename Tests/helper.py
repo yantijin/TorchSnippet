@@ -16,7 +16,7 @@ __all__ = [
     # 'slow_test',
 
     # 'check_distribution_instance',
-    'flow_standard_check',
+    'flow_standard_check', 'noninvert_flow_standard_check'
 ]
 
 
@@ -220,3 +220,20 @@ def flow_standard_check(ctx, flow, x, expected_y, expected_log_det,
     print(torch.max(x-expected_x))
     assert(x-expected_x<1e-4).all()
     assert(log_det == None)
+
+def noninvert_flow_standard_check(ctx, flow, x, expected_y, expected_log_det,
+                                  input_log_det):
+    # test call
+    y, log_det = flow(x)
+    assert (list(y.shape) == list(x.shape))
+    assert (y - expected_y < 1e-6).all()
+    assert (log_det - expected_log_det < 1e-3).all()
+
+    y, log_det = flow(x, input_log_det)
+    assert (y - expected_y < 1e-6).all()
+    print(log_det - input_log_det - expected_log_det)
+    assert (log_det - input_log_det - expected_log_det < 1e-3).all()
+
+    y, log_det = flow(x, compute_log_det=False)
+    assert (y - expected_y < 1e-6).all()
+    assert (log_det == None)
