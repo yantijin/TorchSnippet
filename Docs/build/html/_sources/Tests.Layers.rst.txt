@@ -1,0 +1,38 @@
+Tests.Layers package
+====================
+
+Submodules
+----------
+
+Tests.Layers.test\_base module
+------------------------------
+
+.. automodule:: Tests.Layers.test_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Tests.Layers.test\_gated module
+-------------------------------
+
+.. automodule:: Tests.Layers.test_gated
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Tests.Layers.test\_layers module
+--------------------------------
+
+.. automodule:: Tests.Layers.test_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: Tests.Layers
+   :members:
+   :undoc-members:
+   :show-inheritance:

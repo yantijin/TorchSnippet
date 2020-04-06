@@ -1,0 +1,638 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>TorchSnippet.ode package &mdash; TorchSnippet  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="TorchSnippet.Layers package" href="TorchSnippet.Layers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> TorchSnippet
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">TorchSnippet</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="TorchSnippet.html">TorchSnippet package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="TorchSnippet.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="TorchSnippet.Flow.html">TorchSnippet.Flow package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TorchSnippet.Layers.html">TorchSnippet.Layers package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">TorchSnippet.ode package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TorchSnippet.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TorchSnippet.html#module-TorchSnippet.arg_check">TorchSnippet.arg_check module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TorchSnippet.html#module-TorchSnippet.core">TorchSnippet.core module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TorchSnippet.html#module-TorchSnippet.typing_">TorchSnippet.typing_ module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TorchSnippet.html#module-TorchSnippet">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TorchSnippet.Layers.html">TorchSnippet.Layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TorchSnippet.Flow.html">TorchSnippet.Flow package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">TorchSnippet.ode package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.adjoint">TorchSnippet.ode.adjoint module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.misc">TorchSnippet.ode.misc module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.odefunc">TorchSnippet.ode.odefunc module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.odeint">TorchSnippet.ode.odeint module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.rk_common">TorchSnippet.ode.rk_common module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode.solvers">TorchSnippet.ode.solvers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-TorchSnippet.ode">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TorchSnippet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="modules.html">TorchSnippet</a> &raquo;</li>
+        
+          <li><a href="TorchSnippet.html">TorchSnippet package</a> &raquo;</li>
+        
+      <li>TorchSnippet.ode package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/TorchSnippet.ode.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="torchsnippet-ode-package">
+<h1>TorchSnippet.ode package<a class="headerlink" href="#torchsnippet-ode-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-TorchSnippet.ode.adjoint">
+<span id="torchsnippet-ode-adjoint-module"></span><h2>TorchSnippet.ode.adjoint module<a class="headerlink" href="#module-TorchSnippet.ode.adjoint" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="TorchSnippet.ode.adjoint.NeuralODE">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.adjoint.</code><code class="sig-name descname">NeuralODE</code><span class="sig-paren">(</span><em class="sig-param">func</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.NeuralODE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="TorchSnippet.Layers.html#TorchSnippet.Layers.base.BaseLayer" title="TorchSnippet.Layers.base.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.Layers.base.BaseLayer</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.adjoint.NeuralODE.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y0</em>, <em class="sig-param">t</em>, <em class="sig-param">rtol=1e-06</em>, <em class="sig-param">atol=1e-12</em>, <em class="sig-param">method=None</em>, <em class="sig-param">options=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.NeuralODE.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.adjoint.OdeintAdjointMethod">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.adjoint.</code><code class="sig-name descname">OdeintAdjointMethod</code><a class="headerlink" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.adjoint.OdeintAdjointMethod.backward">
+<em class="property">static </em><code class="sig-name descname">backward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">*grad_output</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a formula for differentiating the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs did <a class="reference internal" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward" title="TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
+tensors, as there were inputs to <a class="reference internal" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward" title="TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
+gradient w.r.t the given output, and each returned value should be the
+gradient w.r.t. the corresponding input.</p>
+<p>The context can be used to retrieve tensors saved during the forward
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.backward" title="TorchSnippet.ode.adjoint.OdeintAdjointMethod.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward" title="TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward">
+<em class="property">static </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.OdeintAdjointMethod.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context ctx as the first argument, followed by any
+number of arguments (tensors or other types).</p>
+<p>The context can be used to store tensors that can be then retrieved
+during the backward pass.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.adjoint.TupleFunc">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.adjoint.</code><code class="sig-name descname">TupleFunc</code><span class="sig-paren">(</span><em class="sig-param">base_func</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.TupleFunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.adjoint.TupleFunc.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">t</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.TupleFunc.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="TorchSnippet.ode.adjoint.odeint_adjoint">
+<code class="sig-prename descclassname">TorchSnippet.ode.adjoint.</code><code class="sig-name descname">odeint_adjoint</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">t</em>, <em class="sig-param">rtol=1e-06</em>, <em class="sig-param">atol=1e-12</em>, <em class="sig-param">method=None</em>, <em class="sig-param">options=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.adjoint.odeint_adjoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-TorchSnippet.ode.misc">
+<span id="torchsnippet-ode-misc-module"></span><h2>TorchSnippet.ode.misc module<a class="headerlink" href="#module-TorchSnippet.ode.misc" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-TorchSnippet.ode.odefunc">
+<span id="torchsnippet-ode-odefunc-module"></span><h2>TorchSnippet.ode.odefunc module<a class="headerlink" href="#module-TorchSnippet.ode.odefunc" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="TorchSnippet.ode.odefunc.ODEfunc">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.odefunc.</code><code class="sig-name descname">ODEfunc</code><span class="sig-paren">(</span><em class="sig-param">diffeq</em>, <em class="sig-param">divergence_fn='approximate'</em>, <em class="sig-param">residual=False</em>, <em class="sig-param">rademacher=False</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.odefunc.ODEfunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.odefunc.ODEfunc.before_odeint">
+<code class="sig-name descname">before_odeint</code><span class="sig-paren">(</span><em class="sig-param">e=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.odefunc.ODEfunc.before_odeint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.odefunc.ODEfunc.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">t</em>, <em class="sig-param">states</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.odefunc.ODEfunc.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.odefunc.ODEfunc.num_evals">
+<code class="sig-name descname">num_evals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.odefunc.ODEfunc.num_evals" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-TorchSnippet.ode.odeint">
+<span id="torchsnippet-ode-odeint-module"></span><h2>TorchSnippet.ode.odeint module<a class="headerlink" href="#module-TorchSnippet.ode.odeint" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="TorchSnippet.ode.odeint.odeint">
+<code class="sig-prename descclassname">TorchSnippet.ode.odeint.</code><code class="sig-name descname">odeint</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">t</em>, <em class="sig-param">rtol=1e-07</em>, <em class="sig-param">atol=1e-09</em>, <em class="sig-param">method=None</em>, <em class="sig-param">options=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.odeint.odeint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate a system of ordinary differential equations.
+Solves the initial value problem for a non-stiff system of first order ODEs:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">dy/dt</span> <span class="pre">=</span> <span class="pre">func(t,</span> <span class="pre">y),</span> <span class="pre">y(t[0])</span> <span class="pre">=</span> <span class="pre">y0</span>
+<span class="pre">`</span></code></p>
+</div></blockquote>
+<p>where y is a Tensor of any shape.
+Output dtypes and numerical precision are based on the dtypes of the inputs <cite>y0</cite>.
+Args:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>func: Function that maps a Tensor holding the state <cite>y</cite> and a scalar Tensor</dt><dd><p><cite>t</cite> into a Tensor of state derivatives with respect to time.</p>
+</dd>
+<dt>y0: N-D Tensor giving starting value of <cite>y</cite> at time point <cite>t[0]</cite>. May</dt><dd><p>have any floating point or complex dtype.</p>
+</dd>
+<dt>t: 1-D Tensor holding a sequence of time points for which to solve for</dt><dd><p><cite>y</cite>. The initial time point should be the first element of this sequence,
+and each time must be larger than the previous time. May have any floating
+point dtype. Converted to a Tensor with float64 dtype.</p>
+</dd>
+<dt>rtol: optional float64 Tensor specifying an upper bound on relative error,</dt><dd><p>per element of <cite>y</cite>.</p>
+</dd>
+<dt>atol: optional float64 Tensor specifying an upper bound on absolute error,</dt><dd><p>per element of <cite>y</cite>.</p>
+</dd>
+</dl>
+<p>method: optional string indicating the integration method to use.
+options: optional dict of configuring options for the indicated integration</p>
+<blockquote>
+<div><p>method. Can only be provided if a <cite>method</cite> is explicitly set.</p>
+</div></blockquote>
+<p>name: Optional name for this operation.</p>
+</div></blockquote>
+<dl>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt>y: Tensor, where the first dimension corresponds to different</dt><dd><p>time points. Contains the solved value of y for each desired time point in
+<cite>t</cite>, with the initial value <cite>y0</cite> being the first element along the first
+dimension.</p>
+</dd>
+</dl>
+</dd>
+<dt>Raises:</dt><dd><p>ValueError: if an invalid <cite>method</cite> is provided.
+TypeError: if <cite>options</cite> is supplied without <cite>method</cite>, or if <cite>t</cite> or <cite>y0</cite> has</p>
+<blockquote>
+<div><p>an invalid dtype.</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-TorchSnippet.ode.rk_common">
+<span id="torchsnippet-ode-rk-common-module"></span><h2>TorchSnippet.ode.rk_common module<a class="headerlink" href="#module-TorchSnippet.ode.rk_common" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="TorchSnippet.ode.rk_common.rk4_alt_step_func">
+<code class="sig-prename descclassname">TorchSnippet.ode.rk_common.</code><code class="sig-name descname">rk4_alt_step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em>, <em class="sig-param">k1=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.rk_common.rk4_alt_step_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Smaller error with slightly more compute.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="TorchSnippet.ode.rk_common.rk4_step_func">
+<code class="sig-prename descclassname">TorchSnippet.ode.rk_common.</code><code class="sig-name descname">rk4_step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em>, <em class="sig-param">k1=None</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.rk_common.rk4_step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-TorchSnippet.ode.solvers">
+<span id="torchsnippet-ode-solvers-module"></span><h2>TorchSnippet.ode.solvers module<a class="headerlink" href="#module-TorchSnippet.ode.solvers" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">AdaptiveStepsizeODESolver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">atol</em>, <em class="sig-param">rtol</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.advance">
+<em class="property">abstract </em><code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">next_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.advance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.integrate">
+<code class="sig-name descname">integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver.integrate" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t</strong> – integrate time list</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>solutions for numerical integration</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.FixedGridODESolver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">FixedGridODESolver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">step_size=None</em>, <em class="sig-param">grid_constructor=None</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.FixedGridODESolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.FixedGridODESolver.integrate">
+<code class="sig-name descname">integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.FixedGridODESolver.integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.FixedGridODESolver.order">
+<em class="property">abstract property </em><code class="sig-name descname">order</code><a class="headerlink" href="#TorchSnippet.ode.solvers.FixedGridODESolver.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.FixedGridODESolver.step_func">
+<em class="property">abstract </em><code class="sig-name descname">step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.FixedGridODESolver.step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.Euler">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">Euler</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">step_size=None</em>, <em class="sig-param">grid_constructor=None</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Euler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.FixedGridODESolver" title="TorchSnippet.ode.solvers.FixedGridODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.FixedGridODESolver</span></code></a></p>
+<p><cite>y’(t) = f(t, y(t))</cite>
+<cite>y_{n+1}=y_{n} + Delta t .f(t_n, y_n)</cite></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Euler.order">
+<em class="property">property </em><code class="sig-name descname">order</code><a class="headerlink" href="#TorchSnippet.ode.solvers.Euler.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Euler.step_func">
+<code class="sig-name descname">step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Euler.step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.Midpoint">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">Midpoint</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">step_size=None</em>, <em class="sig-param">grid_constructor=None</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Midpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.FixedGridODESolver" title="TorchSnippet.ode.solvers.FixedGridODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.FixedGridODESolver</span></code></a></p>
+<p><cite>y_{n+1} = y_{n} + Delta t .f(t_n+frac{1}{2}Delta t, y_n + frac{1}{2}Delta t. f(t_n, y_n))</cite></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Midpoint.order">
+<em class="property">property </em><code class="sig-name descname">order</code><a class="headerlink" href="#TorchSnippet.ode.solvers.Midpoint.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Midpoint.step_func">
+<code class="sig-name descname">step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Midpoint.step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.RK4">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">RK4</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">step_size=None</em>, <em class="sig-param">grid_constructor=None</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.RK4" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.FixedGridODESolver" title="TorchSnippet.ode.solvers.FixedGridODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.FixedGridODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.RK4.order">
+<em class="property">property </em><code class="sig-name descname">order</code><a class="headerlink" href="#TorchSnippet.ode.solvers.RK4.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.RK4.step_func">
+<code class="sig-name descname">step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.RK4.step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.AdamsBashforth">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">AdamsBashforth</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdamsBashforth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdamsBashforthMoulton" title="TorchSnippet.ode.solvers.AdamsBashforthMoulton"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdamsBashforthMoulton</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.AdamsBashforthMoulton">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">AdamsBashforthMoulton</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol=0.001</em>, <em class="sig-param">atol=0.0001</em>, <em class="sig-param">implicit=True</em>, <em class="sig-param">max_iters=4</em>, <em class="sig-param">max_order=12</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdamsBashforthMoulton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.FixedGridODESolver" title="TorchSnippet.ode.solvers.FixedGridODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.FixedGridODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdamsBashforthMoulton.order">
+<em class="property">property </em><code class="sig-name descname">order</code><a class="headerlink" href="#TorchSnippet.ode.solvers.AdamsBashforthMoulton.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdamsBashforthMoulton.step_func">
+<code class="sig-name descname">step_func</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">t</em>, <em class="sig-param">dt</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdamsBashforthMoulton.step_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.AdaptiveHeunSolver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">AdaptiveHeunSolver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol</em>, <em class="sig-param">atol</em>, <em class="sig-param">first_step=None</em>, <em class="sig-param">safety=0.9</em>, <em class="sig-param">ifactor=10.0</em>, <em class="sig-param">dfactor=0.2</em>, <em class="sig-param">max_num_steps=2147483647</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveHeunSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdaptiveHeunSolver.advance">
+<code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">next_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveHeunSolver.advance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate through the next time point, integrating as necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.AdaptiveHeunSolver.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.AdaptiveHeunSolver.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">VariableCoefficientAdamsBashforth</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol</em>, <em class="sig-param">atol</em>, <em class="sig-param">implicit=True</em>, <em class="sig-param">first_step=None</em>, <em class="sig-param">max_order=12</em>, <em class="sig-param">safety=0.9</em>, <em class="sig-param">ifactor=10.0</em>, <em class="sig-param">dfactor=0.2</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth.advance">
+<code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">final_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth.advance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.VariableCoefficientAdamsBashforth.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.Bosh3Solver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">Bosh3Solver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol</em>, <em class="sig-param">atol</em>, <em class="sig-param">first_step=None</em>, <em class="sig-param">safety=0.9</em>, <em class="sig-param">ifactor=10.0</em>, <em class="sig-param">dfactor=0.2</em>, <em class="sig-param">max_num_steps=2147483647</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Bosh3Solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Bosh3Solver.advance">
+<code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">next_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Bosh3Solver.advance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate through the next time point, integrating as necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Bosh3Solver.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Bosh3Solver.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.Dopri5Solver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">Dopri5Solver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol</em>, <em class="sig-param">atol</em>, <em class="sig-param">first_step=None</em>, <em class="sig-param">safety=0.9</em>, <em class="sig-param">ifactor=10.0</em>, <em class="sig-param">dfactor=0.2</em>, <em class="sig-param">max_num_steps=2147483647</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Dopri5Solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Dopri5Solver.advance">
+<code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">next_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Dopri5Solver.advance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate through the next time point, integrating as necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Dopri5Solver.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Dopri5Solver.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TorchSnippet.ode.solvers.Tsit5Solver">
+<em class="property">class </em><code class="sig-prename descclassname">TorchSnippet.ode.solvers.</code><code class="sig-name descname">Tsit5Solver</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">y0</em>, <em class="sig-param">rtol</em>, <em class="sig-param">atol</em>, <em class="sig-param">first_step=None</em>, <em class="sig-param">safety=0.9</em>, <em class="sig-param">ifactor=10.0</em>, <em class="sig-param">dfactor=0.2</em>, <em class="sig-param">max_num_steps=2147483647</em>, <em class="sig-param">**unused_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Tsit5Solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver" title="TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">TorchSnippet.ode.solvers.AdaptiveStepsizeODESolver</span></code></a></p>
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Tsit5Solver.advance">
+<code class="sig-name descname">advance</code><span class="sig-paren">(</span><em class="sig-param">next_t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Tsit5Solver.advance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate through the next time point, integrating as necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TorchSnippet.ode.solvers.Tsit5Solver.before_integrate">
+<code class="sig-name descname">before_integrate</code><span class="sig-paren">(</span><em class="sig-param">t</em><span class="sig-paren">)</span><a class="headerlink" href="#TorchSnippet.ode.solvers.Tsit5Solver.before_integrate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-TorchSnippet.ode">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-TorchSnippet.ode" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="TorchSnippet.Layers.html" class="btn btn-neutral float-left" title="TorchSnippet.Layers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Tijin Yan
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
