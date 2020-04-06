@@ -32,15 +32,19 @@ def sample_gaussian_like(y):
     return torch.randn_like(y)
 
 
-
+# wrap the logp(z(t))/dt - Tr(df/dz)
 class ODEfunc(nn.Module):
 
     def __init__(self, diffeq, divergence_fn="approximate", residual=False, rademacher=False):
         '''
-        :param diffeq: dy/dx = diffeq(t, y_0)
+        :param diffeq: dy/dt = diffeq(t, y_0)
         :param divergence_fn: 迹逼近函数
         :param residual: 是否为residual形式
         :param rademacher: 迹估计向量采样分布
+
+        :return
+            dy:
+            divergence: approximate for Tr(dy/dt)
         '''
         super(ODEfunc, self).__init__()
         assert divergence_fn in ("brute_force", "approximate")

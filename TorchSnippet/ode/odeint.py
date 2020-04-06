@@ -1,16 +1,12 @@
-# from .tsit5 import Tsit5Solver
-# from .dopri5 import Dopri5Solver
-from .fixed_grid import Euler, Midpoint, RK4
-# from .fixed_adams import AdamsBashforth, AdamsBashforthMoulton
-# from .adams import VariableCoefficientAdamsBashforth
 from .misc import _check_inputs
+from .solvers import *
 
 SOLVERS = {
-    # 'explicit_adams': AdamsBashforth,
-    # 'fixed_adams': AdamsBashforthMoulton,
-    # 'adams': VariableCoefficientAdamsBashforth,
-    # 'tsit5': Tsit5Solver,
-    # 'dopri5': Dopri5Solver,
+    'explicit_adams': AdamsBashforth,
+    'fixed_adams': AdamsBashforthMoulton,
+    'adams': VariableCoefficientAdamsBashforth,
+    'tsit5': Tsit5Solver,
+    'dopri5': Dopri5Solver,
     'euler': Euler,
     'midpoint': Midpoint,
     'rk4': RK4,
@@ -60,7 +56,7 @@ def odeint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None):
         raise ValueError('cannot supply `options` without specifying `method`')
 
     if method is None:
-        method = 'rk4'
+        method = 'dopri5'
 
     solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, **options)
     solution = solver.integrate(t)

@@ -18,7 +18,7 @@ class Planar(FeatureMappingFlow):
                        (\mathbf{w}^\top \mathbf{u})\right]
                 \cdot \frac{\mathbf{w}}{\|\mathbf{w}\|_2^2} \\
             m(a) &= -1 + \log(1+\exp(a))
-        \end{aligned}
+    \end{aligned}
     '''
     def __init__(self,
                  num_features,
@@ -91,13 +91,13 @@ class Planar(FeatureMappingFlow):
 
 
 class BaseContinuousNF(FeatureMappingFlow):
-    def __init__(self, odefunc, integration_times, axis=-1, event_ndims=1, solver='rk4', atol=1e-5, rtol=1e-5):
+    def __init__(self, odefunc, integration_times=torch.tensor([0., 1.]), axis=-1, event_ndims=1, solver='dopri5', atol=1e-5, rtol=1e-5):
         '''
         :param odefunc: [dz/dt, dlogp(z)/dt] = odefunc(t, (z_0, dlogp(z_0)/dt_0))
         :param integration_times: 1-D time grid
         :param axis: feature axises
         :param event_ndims:  number of event_ndims in data
-        :param solver: numerical integration methods, default=rk4
+        :param solver: numerical integration methods, default=dopri5
         :param atol:
         :param rtol:
         '''
@@ -119,7 +119,7 @@ class BaseContinuousNF(FeatureMappingFlow):
                  compute_log_det: bool
                  ) -> Tuple[Tensor, Optional[Tensor]]:
         if inverse:
-            self.integration_times = _flip(self.integration_times, 0)
+            self.integration_times = _flip(self.integration_times.to(z), 0)
 
         if input_log_pz is None:
             input_log_pz = torch.zeros(z.shape[0], 1).to(z)

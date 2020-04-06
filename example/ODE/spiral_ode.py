@@ -71,7 +71,7 @@ for i in range(1, niters+1):
     # print(type(batch_y0))
     yout = model(batch_y0, batch_t)
     yout = torch.squeeze(yout)
-    print(yout.shape, batch_y.shape)
+    # print(yout.shape, batch_y.shape)
     loss = torch.mean(torch.abs(yout - batch_y))
     loss.backward()
     optim.step()
