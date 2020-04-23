@@ -10,7 +10,10 @@ __all__ = [
     # factory method
     'get_layer_from_layer_or_factory',
     # assert utils
-    'is_finite', 'is_all', 'assert_finite'
+    'is_finite', 'is_all', 'assert_finite',
+
+    # layer argument validators
+    'validate_layer', 'validate_layer_factory'
 ]
 
 # 如果输入为单值或列表， 变成List， 保证每个元素大于0，长度和spatial_ndims相同
@@ -148,6 +151,24 @@ def assert_finite(input: Tensor, message: str) -> Tensor:
         raise ValueError('Infinity or NaN value encountered: {}'.
                          format(message))
     return input
+
+
+def validate_layer(arg_name: str, layer) -> 'Module':
+    # from tensorkit.layers import is_jit_layer
+    if isinstance(layer, Module): # or is_jit_layer(layer):
+        return layer
+    else:
+        raise TypeError(f'`{arg_name}` is required to be a layer: got {layer!r}')
+
+
+def validate_layer_factory(arg_name: str, layer_factory):
+    if isinstance(layer_factory, type) or callable(layer_factory):
+        return layer_factory
+    else:
+        raise TypeError(f'`{arg_name}` is required to be a layer factory: '
+                        f'got {layer_factory!r}.')
+
+
 
 # ######
 from .typing_ import *

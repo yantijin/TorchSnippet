@@ -16,6 +16,9 @@ __all__ = [
     'weight_norm_decompose', 'NormedAndScaledWeightStore',
     'get_weight_store', 'get_bias_store',
 
+    # identity layer
+    'Identity',
+
     # layers
     'BaseLayer', 'BaseSingleVariateLayer', 'BaseMultiVariateLayer',
     'BaseSplitLayer', 'BaseMergeLayer', 'BaseContextualLayer',
@@ -232,6 +235,13 @@ def get_bias_store(shape: List[int],
     """
     if use_bias:
         return SimpleParamStore(shape, initializer)
+
+
+
+class Identity(Module):
+
+    def forward(self, input: Tensor) -> Tensor:
+        return input
 
 
 class BaseLayer(nn.Module):

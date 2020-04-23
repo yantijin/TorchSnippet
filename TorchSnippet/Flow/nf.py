@@ -10,15 +10,18 @@ from .utils import _flip
 
 class Planar(FeatureMappingFlow):
     '''
-    \begin{aligned}
-            \mathbf{y} &= \mathbf{x} +
-                \mathbf{\hat{u}} \tanh(\mathbf{w}^\top\mathbf{x} + b)\\
-            \mathbf{\hat{u}} &= \mathbf{u} +
-                \left[m(\mathbf{w}^\top \mathbf{u}) -
-                       (\mathbf{w}^\top \mathbf{u})\right]
-                \cdot \frac{\mathbf{w}}{\|\mathbf{w}\|_2^2} \\
-            m(a) &= -1 + \log(1+\exp(a))
-    \end{aligned}
+    .. math::
+
+        \\begin{aligned}
+                \\mathbf{y} &= \\mathbf{x} +
+                    \\mathbf{\\hat{u}} \\tanh(\\mathbf{w}^\\top\\mathbf{x} + b)\\\\
+                \\mathbf{\hat{u}} &= \mathbf{u} +
+                    \\left[m(\\mathbf{w}^\\top \\mathbf{u}) -
+                           (\\mathbf{w}^\\top \\mathbf{u})\\right]
+                    \\cdot \\frac{\\mathbf{w}}{\\|\\mathbf{w}\\|_2^2} \\
+                m(a) &= -1 + \\log(1+\\exp(a))
+        \\end{aligned}
+
     '''
     def __init__(self,
                  num_features,
