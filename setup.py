@@ -9,7 +9,7 @@ here = path.abspath(path.dirname(__file__))
 
 # Get the version string
 with open(path.join(here, 'TorchSnippet', '__init__.py'), encoding='utf-8') as f:
-    version = re.search(r'__version__= \'(.*?)\'', f.read()).group(1)
+    version = re.search(r'__version__ = \'(.*?)\'', f.read()).group(1)
 
 # Get the long description from the README file
 # with open(path.join(here, 'README.md'), encoding='utf-8') as f:
@@ -74,7 +74,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['numpy>=1.18.0',
-                      'scipy>=1.4.0'
+                      'scipy>=1.4.0',
                       'six'],
 
     # List additional groups of dependencies here (e.g. development
@@ -95,7 +95,7 @@ setup(
             'scipy',
             'matplotlib',
             'scikit-image',
-            'matplotlib'
+            'matplotlib',
             'progressbar2'
         ],
     },
