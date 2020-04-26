@@ -1,9 +1,6 @@
 import torch
 from .base import BaseSingleVariateLayer
-from ..typing_ import *
-# from ..tensor import Tensor, tanh
-# from ..tensor.nn import LEAKY_RELU_DEFAULT_SLOPE, relu, leaky_relu, sigmoid
-# from .core import *
+from TorchSnippet.typing_ import *
 
 __all__ = [
     'ReLU', 'LeakyReLU', 'Tanh', 'Sigmoid',

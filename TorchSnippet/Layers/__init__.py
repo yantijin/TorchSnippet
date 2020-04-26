@@ -5,3 +5,5 @@ from .gated import *
 from .layers import *
 from .utils import *
 from .contextual import *
+from .resnet import *
+from .utils import *

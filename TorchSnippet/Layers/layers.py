@@ -1,8 +1,8 @@
 # import torch
 from typing import *
 
-from ..arg_check import *
-from ..typing_ import *
+from TorchSnippet.arg_check import *
+from TorchSnippet.typing_ import *
 from .gated import *
 from .base import Sequential, Linear, DEFAULT_WEIGHT_INIT, DEFAULT_BIAS_INIT, DEFAULT_GATE_BIAS, \
     LinearConv1d, LinearConv2d, LinearConv3d, LinearConvTranspose1d, LinearConvTranspose2d, LinearConvTranspose3d, \

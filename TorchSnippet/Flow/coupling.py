@@ -1,9 +1,9 @@
 import torch
 from typing import *
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from .scale import *
 from .base import FeatureMappingFlow
-from ..Layers.base import IS_CHANNEL_LAST
+from TorchSnippet.Layers.base import IS_CHANNEL_LAST
 
 __all__ = [
     'CouplingLayer', 'CouplingLayer1d',

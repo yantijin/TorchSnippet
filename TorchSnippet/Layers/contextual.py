@@ -1,4 +1,4 @@
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from .base import *
 from typing import *
 

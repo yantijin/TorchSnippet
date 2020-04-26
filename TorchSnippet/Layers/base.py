@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 from typing import *
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from . import initializer
-from ..arg_check import *
-from ..core import variable, assign_data, add_parameter, \
+from TorchSnippet.arg_check import *
+from TorchSnippet.core import variable, assign_data, add_parameter, \
     norm_except_axis, as_tensor, get_dtype, flatten_to_ndims, unflatten_from_ndims, \
     pad
 

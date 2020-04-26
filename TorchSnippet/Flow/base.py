@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import scipy.linalg as la
 import numpy as np
-from ..Layers import BaseLayer
-from ..typing_ import *
+from TorchSnippet.Layers import BaseLayer
+from TorchSnippet.typing_ import *
 from typing import *
-from ..core import broadcast_to, add_buffer, add_parameter, as_tensor
+from TorchSnippet.core import broadcast_to, add_buffer, add_parameter, as_tensor
 
 __all__ = [
     'BaseFlow', 'FeatureMappingFlow', 'InverseFlow', 'SequentialFlow',

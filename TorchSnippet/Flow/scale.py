@@ -1,7 +1,7 @@
 from ..Layers import BaseLayer
 from typing import *
-from ..typing_ import *
-from ..core import broadcast_to, reduce_sum, broadcast_shape
+from TorchSnippet.typing_ import *
+from TorchSnippet.core import broadcast_to, reduce_sum, broadcast_shape
 import torch
 
 __all__ = [

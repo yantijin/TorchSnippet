@@ -1,9 +1,9 @@
 import torch
 from .base import BaseFlow, FeatureMappingFlow, SequentialFlow
 import TorchSnippet.Layers.initializer as init
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from typing import *
-from ..core import reduce_sum, flatten_to_ndims, unflatten_from_ndims, add_parameter, variable
+from TorchSnippet.core import reduce_sum, flatten_to_ndims, unflatten_from_ndims, add_parameter, variable
 from TorchSnippet.ode import odeint_adjoint as odeint
 from .utils import _flip
 

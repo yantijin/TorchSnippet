@@ -1,8 +1,8 @@
 from .base import FeatureMappingFlow, StrictInvertibleMatrix, LooseInvertibleMatrix
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from typing import *
-from ..Layers import initializer
-from ..core import variable, to_numpy, flatten_to_ndims, unflatten_from_ndims
+from TorchSnippet.Layers import initializer
+from TorchSnippet.core import variable, to_numpy, flatten_to_ndims, unflatten_from_ndims
 import torch
 
 __all__ = [

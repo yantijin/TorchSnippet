@@ -1,5 +1,5 @@
 from .base import BaseSingleVariateLayer
-from ..typing_ import Tensor, Module
+from TorchSnippet.typing_ import Tensor, Module
 import torch
 
 __all__ = [

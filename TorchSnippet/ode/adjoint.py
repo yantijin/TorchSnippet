@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from . import odeint
 from .misc import _flatten, _flatten_convert_none_to_zeros
-from ..Layers.base import BaseLayer
+from TorchSnippet.Layers.base import BaseLayer
 
 
 class OdeintAdjointMethod(torch.autograd.Function):

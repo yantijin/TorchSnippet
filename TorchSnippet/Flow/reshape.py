@@ -1,6 +1,6 @@
 import torch
 from .base import BaseFlow
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from typing import *
 from .utils import *
 

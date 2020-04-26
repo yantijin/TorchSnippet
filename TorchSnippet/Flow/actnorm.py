@@ -1,12 +1,12 @@
 import torch
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from typing import *
 from .base import FeatureMappingFlow
 from .scale import *
 import TorchSnippet.Layers.initializer as init
 from functools import partial
-from ..core import add_parameter, variable, calculate_mean_and_var, get_parameter
-from ..arg_check import *
+from TorchSnippet.core import add_parameter, variable, calculate_mean_and_var, get_parameter
+from TorchSnippet.arg_check import *
 from TorchSnippet.Layers import IS_CHANNEL_LAST
 
 class ActNorm(FeatureMappingFlow):

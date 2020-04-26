@@ -1,8 +1,8 @@
 from typing import *
 
-from ..arg_check import *
+from TorchSnippet.arg_check import *
 # from ..tensor import Module
-from ..typing_ import *
+from TorchSnippet.typing_ import *
 from .activation import *
 
 __all__ = [
