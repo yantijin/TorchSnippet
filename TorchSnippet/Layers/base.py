@@ -6,7 +6,7 @@ from . import initializer
 from TorchSnippet.arg_check import *
 from TorchSnippet.core import variable, assign_data, add_parameter, \
     norm_except_axis, as_tensor, get_dtype, flatten_to_ndims, unflatten_from_ndims, \
-    pad
+    pad, current_device, CPU_DEVICE
 
 __all__ = [
     'DEFAULT_BIAS_INIT', 'DEFAULT_WEIGHT_INIT', 'EPSILON', 'DEFAULT_GATE_BIAS',
@@ -45,6 +45,27 @@ EPSILON = 1e-5
 DEFAULT_GATE_BIAS: float = 2.0
 IS_CHANNEL_LAST = False
 
+
+
+def layer_to_device(layer: Module, device: Optional[str] = None) -> Module:
+    """
+    Move the specified module or layer to the given device.
+    The module or layer may be changed in-place.
+
+    Args:
+        layer: The module or layer to be moved.
+        device: The device, to where move the module or layer.
+            If not specified, will move to ``T.current_device()``.
+
+    Returns:
+        The layer instance.
+    """
+    if device is None:
+        device = current_device()
+    layer = layer.to(device=torch.device(device))
+    return layer
+
+
 # ---- weight wrapper: a simple weight, or a normed weight ----
 class BaseParamStore(Module):
     """
@@ -79,9 +100,13 @@ class SimpleParamStore(BaseParamStore):
 
     def __init__(self,
                  shape: List[int],
-                 initializer: TensorInitArgType):
+                 initializer: TensorInitArgType,
+                 device: Optional[str]=None):
         super().__init__(shape)
-        add_parameter(self, 'value', variable(shape, initializer=initializer))
+        device = device or current_device()
+        add_parameter(self, 'value', variable(shape,
+                                              initializer=initializer,
+                                              device=device))
 
     def get(self) -> Tensor:
         return self.value
@@ -124,12 +149,14 @@ class NormedWeightStore(BaseParamStore):
                  shape: List[int],
                  initializer: TensorInitArgType,
                  norm_axis: int = 1,
+                 device: Optional[str]=None,
                  epsilon: float = EPSILON):
         super().__init__(shape)
         self.norm_axis = norm_axis
+        device = device or current_device()
         self.epsilon = epsilon
 
-        weight = variable(shape, initializer=initializer)
+        weight = variable(shape, initializer=initializer, device=device)
         with torch.no_grad():
             v, _ = weight_norm_decompose(weight, norm_axis, epsilon)
         add_parameter(self, 'v', v)
@@ -141,7 +168,7 @@ class NormedWeightStore(BaseParamStore):
     def set(self, value: TensorOrData) -> None:
         with torch.no_grad():
             v, _ = weight_norm_decompose(
-                as_tensor(value, dtype=get_dtype(self.v)),
+                as_tensor(value, dtype=get_dtype(self.v), device=str(self.v.device)),
                 self.norm_axis,
                 self.epsilon,
             )
@@ -160,12 +187,14 @@ class NormedAndScaledWeightStore(BaseParamStore):
                  shape: List[int],
                  initializer: TensorInitArgType,
                  norm_axis: int = 1,
+                 device: Optional[str] = None,
                  epsilon: float = EPSILON):
         super().__init__(shape)
         self.norm_axis = norm_axis
         self.epsilon = epsilon
+        device = device or current_device()
 
-        weight = variable(shape, initializer=initializer)
+        weight = variable(shape, initializer=initializer, device=device)
         with torch.no_grad():
             v, g = weight_norm_decompose(weight, norm_axis, epsilon)
         add_parameter(self, 'v', v)
@@ -178,7 +207,7 @@ class NormedAndScaledWeightStore(BaseParamStore):
     def set(self, value: TensorOrData) -> None:
         with torch.no_grad():
             v, g = weight_norm_decompose(
-                as_tensor(value, dtype=get_dtype(self.v)),
+                as_tensor(value, dtype=get_dtype(self.v), device=str(self.v.device)),
                 self.norm_axis,
                 self.epsilon,
             )
@@ -189,7 +218,8 @@ class NormedAndScaledWeightStore(BaseParamStore):
 def get_weight_store(shape: List[int],
                      initializer: TensorInitArgType = DEFAULT_WEIGHT_INIT,
                      norm_axis: int = 1,
-                     weight_norm: WeightNormArgType = False
+                     weight_norm: WeightNormArgType = False,
+                     device: Optional[str]=None
                      ) -> BaseParamStore:
     """
     Create a module which carries the `weight` parameter.
@@ -206,12 +236,13 @@ def get_weight_store(shape: List[int],
     Returns:
         The weight object.
     """
+    device = device or current_device()
     if weight_norm is True or weight_norm == WeightNormMode.FULL:
-        return NormedAndScaledWeightStore(shape, initializer, norm_axis)
+        return NormedAndScaledWeightStore(shape, initializer, norm_axis, device)
     elif weight_norm == WeightNormMode.NO_SCALE:
-        return NormedWeightStore(shape, initializer, norm_axis)
+        return NormedWeightStore(shape, initializer, norm_axis, device)
     elif weight_norm is False or weight_norm == WeightNormMode.NONE:
-        return SimpleParamStore(shape, initializer)
+        return SimpleParamStore(shape, initializer, device)
     else:
         raise ValueError(f'Invalid value for argument `weight_norm`: '
                          f'{weight_norm!r}.')
@@ -219,7 +250,8 @@ def get_weight_store(shape: List[int],
 
 def get_bias_store(shape: List[int],
                    initializer: TensorInitArgType = DEFAULT_BIAS_INIT,
-                   use_bias: bool = True
+                   use_bias: bool = True,
+                   device: Optional[str]=None
                    ) -> Optional[BaseParamStore]:
     """
     Create a module that carries the `bias` parameter.
@@ -233,8 +265,9 @@ def get_bias_store(shape: List[int],
     Returns:
         The bias object, or :obj:`None` if `use_bias` is False.
     """
+    device =device or current_device()
     if use_bias:
-        return SimpleParamStore(shape, initializer)
+        return SimpleParamStore(shape, initializer, device)
 
 
 
@@ -387,11 +420,15 @@ class CoreLinear(BaseLayer):
                  weight_init: TensorInitArgType = DEFAULT_WEIGHT_INIT,
                  bias_init: TensorInitArgType = DEFAULT_BIAS_INIT,
                  data_init: Optional[DataInitArgType] = None,
+                 device: Optional[str]=None
                  ):
+        device = device or current_device()
         weight_store = get_weight_store(
-            weight_shape, initializer=weight_init, weight_norm=weight_norm)
+            weight_shape, initializer=weight_init,
+            weight_norm=weight_norm, device=device)
         bias_store = get_bias_store(
-            bias_shape, initializer=bias_init, use_bias=use_bias)
+            bias_shape, initializer=bias_init,
+            use_bias=use_bias, device=device)
 
         if data_init is not None:
             if not isinstance(data_init, initializer.DataDependentInitializer) and \
@@ -448,6 +485,7 @@ class Linear(CoreLinear):
                  weight_init: TensorInitArgType = DEFAULT_WEIGHT_INIT,
                  bias_init: TensorInitArgType = DEFAULT_BIAS_INIT,
                  data_init: Optional[DataInitArgType] = None,
+                 device: Optional[str]=None
                  ):
         in_features = validate_positive_int('in_features', in_features)
         out_features = validate_positive_int('out_features', out_features)
@@ -464,6 +502,7 @@ class Linear(CoreLinear):
             weight_init=weight_init,
             bias_init=bias_init,
             data_init=data_init,
+            device=device,
         )
 
     # @jit_method
@@ -498,6 +537,7 @@ class LinearConvNd(CoreLinear):
                  weight_init: TensorInitArgType = DEFAULT_WEIGHT_INIT,
                  bias_init: TensorInitArgType = DEFAULT_BIAS_INIT,
                  data_init: Optional[DataInitArgType] = None,
+                 device: Optional[str]=None
                  ):
         spatial_ndims = self._get_spatial_ndims()
         in_channels = validate_positive_int('in_channels', in_channels)
@@ -525,6 +565,7 @@ class LinearConvNd(CoreLinear):
             weight_init=weight_init,
             bias_init=bias_init,
             data_init=data_init,
+            device=device
         )
 
     def _get_spatial_ndims(self) -> int:
@@ -619,6 +660,7 @@ class LinearConvTransposeNd(CoreLinear):
                  weight_init: TensorInitArgType = DEFAULT_WEIGHT_INIT,
                  bias_init: TensorInitArgType = DEFAULT_BIAS_INIT,
                  data_init: Optional[DataInitArgType] = None,
+                 device: Optional[str]=None
                  ):
         spatial_ndims = self._get_spatial_ndims()
         in_channels = validate_positive_int('in_channels', in_channels)
@@ -649,6 +691,7 @@ class LinearConvTransposeNd(CoreLinear):
             weight_init=weight_init,
             bias_init=bias_init,
             data_init=data_init,
+            device=device,
         )
 
     def _get_spatial_ndims(self) -> int:
@@ -746,8 +789,12 @@ class BatchNorm(torch.nn.BatchNorm1d):
     def __init__(self,
                  num_features: int,
                  momentum: float = 0.1,
+                 device: Optional=None,
                  epsilon: float = EPSILON):
+        device = device or current_device()
         super().__init__(num_features, eps=epsilon, momentum=momentum)
+        if device != CPU_DEVICE:
+            self.to(device=device)
 
     def _check_input_dim(self, input: Tensor):
         if input.dim() != 2:
@@ -761,8 +808,12 @@ class BatchNorm1d(torch.nn.BatchNorm1d):
     def __init__(self,
                  num_features: int,
                  momentum: float = 0.1,
-                 epsilon: float = EPSILON):
+                 epsilon: float = EPSILON,
+                 device: Optional[str]=None):
         super().__init__(num_features, eps=epsilon, momentum=momentum)
+        device = device or current_device()
+        if device != CPU_DEVICE:
+            self.to(device=device)
 
     def _check_input_dim(self, input: Tensor):
         if input.dim() != 3:
@@ -776,8 +827,12 @@ class BatchNorm2d(torch.nn.BatchNorm2d):
     def __init__(self,
                  num_features: int,
                  momentum: float = 0.1,
-                 epsilon: float = EPSILON):
+                 epsilon: float = EPSILON,
+                 device: Optional[str]=None):
         super().__init__(num_features, eps=epsilon, momentum=momentum)
+        device = device or current_device()
+        if device != CPU_DEVICE:
+            self.to(device=device)
 
     def _check_input_dim(self, input: Tensor):
         if input.dim() != 4:
@@ -791,8 +846,12 @@ class BatchNorm3d(torch.nn.BatchNorm3d):
     def __init__(self,
                  num_features: int,
                  momentum: float = 0.1,
-                 epsilon: float = EPSILON):
+                 epsilon: float = EPSILON,
+                 device: Optional[str]=None):
         super().__init__(num_features, eps=epsilon, momentum=momentum)
+        device = device or current_device()
+        if device != CPU_DEVICE:
+            self.to(device=device)
 
     def _check_input_dim(self, input: Tensor):
         if input.dim() != 5:
@@ -822,11 +881,12 @@ class Dropout1d(BaseSingleVariateLayer):
             raise ValueError('`input` must be at least 2d, but the '
                              'input shape is {}.'.format(list(input.shape)))
 
+        device = input.device
         output = input
         if self.training:
             noise_shape = output.shape[:-1] + (1,)
-            noise = torch.zeros(noise_shape, dtype=output.dtype)
-            keep_prob = torch.as_tensor(self._keep_prob, dtype=output.dtype)
+            noise = torch.zeros(noise_shape, dtype=output.dtype, device=device)
+            keep_prob = torch.as_tensor(self._keep_prob, dtype=output.dtype, device=device)
             noise = torch.bernoulli(keep_prob.expand(noise_shape), out=noise)
             noise = noise.detach()
             output = output * noise / keep_prob

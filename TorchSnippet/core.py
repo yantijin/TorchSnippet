@@ -10,7 +10,7 @@ __all__ = [
     'set_train_mode',
 
 
-    'pad', 'index_select',
+    'pad', 'index_select', 'shift',
 
     'to_numpy',
 
@@ -35,10 +35,13 @@ __all__ = [
     'fill', 'fill_zeros', 'assign_data',
 
     # tensor constructors
-    'zeros', 'as_tensor',
+    'zeros', 'as_tensor', 'ones_like',
 
     # mean std
-    'calculate_mean_and_var'
+    'calculate_mean_and_var',
+
+    'current_device', 'CPU_DEVICE'
+
 ]
 
 # ---- utils ----
@@ -280,11 +283,12 @@ def assign_data(dst: Tensor, src) -> Tensor:
     if src.shape != dst.shape:
         raise ValueError('`dst.shape` != `src.shape`: {} vs {}'.
                          format(dst.shape, src.shape))
-    dst.data = src
+    dst.copy_(src.detach())
     return dst
 
 def variable(shape: List[int],
              dtype: Union[str, torch.dtype] = torch.float32,
+             device: Optional[str] = None,
              initializer: Optional[
                  Union[
                      int, float, np.ndarray, Tensor,
@@ -322,28 +326,31 @@ def variable(shape: List[int],
     else:
         target_dtype = dtype
 
+    if device is None:
+        device = current_device()
+
     if isinstance(initializer, (int, float)):
         ret = torch.full(shape, float(initializer), dtype=target_dtype,
-                         requires_grad=requires_grad)
+                         requires_grad=requires_grad, device=device)
     elif isinstance(initializer, np.ndarray) and initializer.shape == ():
         ret = torch.full(shape, initializer.tolist(), dtype=target_dtype,
-                         requires_grad=requires_grad)
+                         requires_grad=requires_grad, device=device)
     elif isinstance(initializer, (np.ndarray, Tensor)):
         if list(initializer.shape) != shape:
             raise ValueError(f'`initializer.shape` != `shape`: '
                              f'{list(initializer.shape)} vs {shape}')
         ret = as_tensor(initializer, dtype=target_dtype,
-                        force_copy=force_copy)
+                        force_copy=force_copy, device=device)
         if requires_grad:
             ret.requires_grad_(True)
     elif isinstance(initializer, Callable):
-        ret = zeros(shape, dtype=dtype)
+        ret = zeros(shape, dtype=dtype, device=device)
         with torch.no_grad():
             initializer(ret)
         if requires_grad:
             ret.requires_grad_(True)
     elif initializer is None:
-        ret = torch.zeros(shape, dtype=target_dtype,
+        ret = torch.zeros(shape, dtype=target_dtype, device=device,
                           requires_grad=requires_grad)
     else:
         raise TypeError(f'Unsupported initializer: {initializer!r}')
@@ -355,7 +362,8 @@ def variable(shape: List[int],
 # tensor constructors
 def as_tensor(data,
               dtype: Optional[Union[torch.dtype, str]] = None,
-              force_copy: bool = False) -> Tensor:
+              force_copy: bool = False,
+              device: Optional[str]=None) -> Tensor:
     """
     Construct a new tensor from `data`.
 
@@ -396,23 +404,50 @@ def as_tensor(data,
     # if `data` is already a tensor
     # if isinstance(data, StochasticTensor):
     #     data = data.tensor
+    if device is None:
+        device = current_device()
 
     if isinstance(data, Tensor):
         # input `data` may be `StochasticTensor`, `Tensor` or `numpy.ndarray`
-        if data.dtype != target_dtype:
+        from_dev = str(data.device)
+        if data.dtype != target_dtype and from_dev != device:
+            data = data.to(dtype=target_dtype, device=device)
+        elif data.dtype != target_dtype:
             data = data.to(target_dtype)
+        elif from_dev != device:
+            data = data.to(device=device)
+
         if force_copy:
             data = data.clone()
         return data
 
     # or if `data` is other types
-    ret = torch.as_tensor(data, dtype=target_dtype)
+    ret = torch.as_tensor(data, dtype=target_dtype, device=device)
     if force_copy:
         ret = ret.clone()
     return ret
 
 
-def zeros(shape: List[int], dtype: Union[str, torch.dtype] = 'float32') -> Tensor:
+def ones_like(input: Tensor,
+              dtype: Optional[str] = None,
+              shape: Optional[List[int]] = None) -> Tensor:
+    if dtype is not None:
+        if dtype == 'float32':
+            target_dtype = torch.float32
+        elif dtype == 'int32':
+            target_dtype = torch.int32
+        else:
+            target_dtype = {'int8': torch.int8, 'uint8': torch.uint8, 'int16': torch.int16, 'int64': torch.int64, 'float16': torch.float16, 'float64': torch.float64, 'bool': torch.bool}[dtype]
+    else:
+        target_dtype = input.dtype
+    if shape is None:
+        shape = list(input.shape)
+    return torch.ones(shape, dtype=target_dtype, device=input.device)
+
+
+def zeros(shape: List[int],
+          dtype: Union[str, torch.dtype] = 'float32',
+          device: Optional[str] = None) -> Tensor:
     if isinstance(dtype, str):
         if dtype == 'float32':
             target_dtype = torch.float32
@@ -424,7 +459,10 @@ def zeros(shape: List[int], dtype: Union[str, torch.dtype] = 'float32') -> Tenso
         target_dtype = dtype
     else:
         raise ValueError('`dtype` should be a str or torch.dtype, please check your inputs')
-    return torch.zeros(shape, dtype=target_dtype)
+
+    if device is None:
+        device = current_device()
+    return torch.zeros(shape, dtype=target_dtype, device=device)
 
 
 # reduction calculation
@@ -645,3 +683,52 @@ def calculate_mean_and_var(input: Tensor,
         var = var * (float(reduce_size) / (reduce_size - 1.))
 
     return mean, var
+
+def shift(input: Tensor,
+          shift: List[int],
+          fill_value: float = 0.) -> Tensor:
+    shift_length = len(shift)
+    if shift_length > input.dim():
+        raise ValueError('`len(shift) <= rank(input)` does not hold: '
+                         'got `shift` {}, and `shape(input)` {}.'.
+                         format(shift, list(input.shaape)))
+
+    padding: List[int] = []
+    need_pad: bool = False
+
+    for axis in range(-1, -(shift_length + 1), -1):
+        s = shift[axis]
+        size = input.shape[axis]
+        if s < -size or s > size:
+            raise ValueError(
+                '`shift` out of range at axis {}: expected to be >= {} '
+                'and <= {}.'.format(axis, -size, size)
+            )
+        if s < 0:
+            padding.append(0)
+            padding.append(-s)
+            input = torch.narrow(input, axis, -s, size + s)
+            need_pad = True
+        elif s > 0:
+            padding.append(s)
+            padding.append(0)
+            input = torch.narrow(input, axis, 0, size - s)
+            need_pad = True
+        else:
+            padding.append(0)
+            padding.append(0)
+        axis -= 1
+
+    if need_pad:
+        input = torch.nn.functional.pad(
+            input, padding, mode='constant', value=fill_value)
+
+    return input
+
+
+CPU_DEVICE = 'cpu'
+_current_device = [CPU_DEVICE]
+
+
+def current_device() -> str:
+    return _current_device[0]
