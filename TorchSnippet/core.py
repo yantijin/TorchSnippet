@@ -691,7 +691,7 @@ def shift(input: Tensor,
     if shift_length > input.dim():
         raise ValueError('`len(shift) <= rank(input)` does not hold: '
                          'got `shift` {}, and `shape(input)` {}.'.
-                         format(shift, list(input.shaape)))
+                         format(shift, list(input.shape)))
 
     padding: List[int] = []
     need_pad: bool = False

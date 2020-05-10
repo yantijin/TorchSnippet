@@ -9,7 +9,7 @@ from TorchSnippet.arg_check import *
 from TorchSnippet.typing_ import *
 from TorchSnippet.core import *
 from .utils import flatten_nested_layers
-
+# refer to `http://vsooda.github.io/2016/10/30/pixelrnn-pixelcnn/` about pixel cnn
 __all__ = [
     'PixelCNNInput1d', 'PixelCNNInput2d', 'PixelCNNInput3d',
     'PixelCNNOutput1d', 'PixelCNNOutput2d', 'PixelCNNOutput3d',

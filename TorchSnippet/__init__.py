@@ -1,6 +1,7 @@
 from . import Layers
 from . import Flow
 from . import ode
+from . import optim
 from .arg_check import *
 from .core import *
 from .typing_ import *

@@ -9,3 +9,4 @@ from .resnet import *
 from .utils import *
 from .pixelcnn import *
 from .std_data_init import *
+from .norm import *
