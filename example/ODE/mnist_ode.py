@@ -26,9 +26,9 @@ parser.add_argument('--gpu', type=int, default=0)
 args = parser.parse_args()
 
 if args.adjoint:
-    from TorchSnippet.ode import odeint_adjoint as odeint
+    from TorchSnippet.dyna import odeint_adjoint as odeint
 else:
-    from TorchSnippet.ode import odeint
+    from TorchSnippet.dyna import odeint
 
 
 def conv3x3(in_planes, out_planes, stride=1):

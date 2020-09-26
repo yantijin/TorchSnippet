@@ -3,7 +3,7 @@ import torch.nn as nn
 import TorchSnippet as tsp
 import matplotlib.pyplot as plt
 import numpy as np
-from TorchSnippet.ode import odeint_adjoint, odeint, NeuralODE
+from TorchSnippet.dyna import odeint_adjoint, odeint, NeuralODE
 import tqdm
 
 # d^2x/dt^2 - \mu(1-x^2) dx/dt + x = 0;

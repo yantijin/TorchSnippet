@@ -1,7 +1,8 @@
 import torch
+import torch.nn as nn
 import numpy as np
 import TorchSnippet as tsp
-from TorchSnippet.ode import *
+from TorchSnippet.dyna import *
 import matplotlib.pyplot as plt
 
 data_size = 1000
