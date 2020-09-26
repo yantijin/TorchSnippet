@@ -1,6 +1,6 @@
 from . import Layers
 from . import Flow
-from . import ode
+from . import dyna
 from . import optim
 from .arg_check import *
 from .core import *
