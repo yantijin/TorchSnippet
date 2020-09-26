@@ -4,7 +4,7 @@ import TorchSnippet.Layers.initializer as init
 from TorchSnippet.typing_ import *
 from typing import *
 from TorchSnippet.core import reduce_sum, flatten_to_ndims, unflatten_from_ndims, add_parameter, variable
-from TorchSnippet.ode import odeint_adjoint as odeint
+from TorchSnippet.dyna import odeint_adjoint as odeint
 from .utils import _flip
 
 
