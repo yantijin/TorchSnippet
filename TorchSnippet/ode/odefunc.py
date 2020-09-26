@@ -4,7 +4,8 @@ import numpy as np
 
 # wrap dy/dt = diffeq(t, y_0) to [dy/dt, logp(y(t))/dt] = [diffeq(t, y_0), -e^T dy/y e]
 __all__= [
-    'ODEfunc',
+    'ODEfunc', 'divergence_bf', 'divergence_approx',
+    'sample_gaussian_like', 'sample_rademacher_like'
 ]
 
 # dx/y 的迹,暴力解法

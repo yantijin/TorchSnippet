@@ -2,7 +2,9 @@ import abc
 import torch
 import sys
 import collections
-from .misc import _assert_increasing, _handle_unused_kwargs, _scaled_dot_product, _is_iterable, _interp_fit,\
+import bisect
+import warnings
+from .misc import  _handle_unused_kwargs, _scaled_dot_product, _is_iterable, _interp_fit,\
     _convert_to_tensor, _select_initial_step, _interp_evaluate, _compute_error_ratio, \
     _optimal_step_size, _has_converged,_is_finite
 from .rk_common import (_ButcherTableau, rk4_alt_step_func, rk4_step_func,
@@ -10,389 +12,339 @@ from .rk_common import (_ButcherTableau, rk4_alt_step_func, rk4_step_func,
 
 
 __all__ = [
-    'AdaptiveStepsizeODESolver', 'FixedGridODESolver',
+    'AdaptiveStepsizeODESolver', 'FixedGridODESolver', 'RKAdaptiveStepsizeODESolver',
 
     # fixed grid methods
     'Euler', 'Midpoint', 'RK4',
 
     # adaptive methods
     'AdamsBashforth', 'AdamsBashforthMoulton', 'AdaptiveHeunSolver',
-    'VariableCoefficientAdamsBashforth', 'Bosh3Solver', 'Dopri5Solver',
+    'VariableCoefficientAdamsBashforth', 'Bosh3Solver', 'Dopri5Solver', 'Dopri8Solver',
     'Tsit5Solver'
 ]
 
 
-class AdaptiveStepsizeODESolver(object):
-    __metaclass__ = abc.ABCMeta
-
-    def __init__(self, func, y0, atol, rtol, **unused_kwargs):
-        '''
-        :param func: numerical step integreation function
-        :param y0: initial value of ODE
-        :param atol: error parameters
-        :param rtol: arror parameters
-        '''
+class AdaptiveStepsizeODESolver(metaclass=abc.ABCMeta):
+    def __init__(self, dtype, y0, norm, **unused_kwargs):
         _handle_unused_kwargs(self, unused_kwargs)
         del unused_kwargs
 
-        self.func = func
         self.y0 = y0
-        self.atol = atol
-        self.rtol = rtol
+        self.dtype = dtype
 
-    def before_integrate(self, t):
+        self.norm = norm
+
+    def _before_integrate(self, t):
         pass
 
     @abc.abstractmethod
-    def advance(self, next_t):
+    def _advance(self, next_t):
         raise NotImplementedError
 
     def integrate(self, t):
-        '''
-        :param t: integrate time list
-        :return: solutions for numerical integration
-        '''
-        _assert_increasing(t)
-        solution = [self.y0]
-        t = t.to(self.y0[0].device, torch.float64)
-        self.before_integrate(t)
+        solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
+        solution[0] = self.y0
+        t = t.to(self.dtype)
+        self._before_integrate(t)
         for i in range(1, len(t)):
-            y = self.advance(t[i])
-            solution.append(y)
-        return tuple(map(torch.stack, tuple(zip(*solution))))
+            solution[i] = self._advance(t[i])
+        return solution
 
 
-class FixedGridODESolver(object):
-    __metaclass__ = abc.ABCMeta
-
+class FixedGridODESolver(metaclass=abc.ABCMeta):
+    order: int
 
     def __init__(self, func, y0, step_size=None, grid_constructor=None, **unused_kwargs):
-        '''
-        :param func: numerical step integration function
-        :param y0: initial value for integration,
-        :param step_size: step size for numerical integration
-        :param grid_constructor: a function that construct a grid
-        '''
         unused_kwargs.pop('rtol', None)
         unused_kwargs.pop('atol', None)
+        unused_kwargs.pop('norm', None)
         _handle_unused_kwargs(self, unused_kwargs)
         del unused_kwargs
 
         self.func = func
         self.y0 = y0
+        self.dtype = y0.dtype
+        self.device = y0.device
 
-        if step_size is not None and grid_constructor is None:
-            self.grid_constructor = self._grid_constructor_from_step_size(step_size)
-        elif grid_constructor is None:
-            self.grid_constructor = lambda f, y0, t: t
+        if step_size is None:
+            if grid_constructor is None:
+                self.grid_constructor = lambda f, y0, t: t
+            else:
+                self.grid_constructor = grid_constructor
         else:
-            raise ValueError("step_size and grid_constructor are exclusive arguments.")
+            if grid_constructor is None:
+                self.grid_constructor = self._grid_constructor_from_step_size(step_size)
+            else:
+                raise ValueError("step_size and grid_constructor are mutually exclusive arguments.")
 
-    def _grid_constructor_from_step_size(self, step_size):
-
+    @staticmethod
+    def _grid_constructor_from_step_size(step_size):
         def _grid_constructor(func, y0, t):
             start_time = t[0]
             end_time = t[-1]
 
             niters = torch.ceil((end_time - start_time) / step_size + 1).item()
-            t_infer = torch.arange(0, niters).to(t) * step_size + start_time
+            t_infer = torch.arange(0, niters, dtype=t.dtype, device=t.device) * step_size + start_time
             if t_infer[-1] > t[-1]:
                 t_infer[-1] = t[-1]
 
             return t_infer
-
         return _grid_constructor
 
-    @property
     @abc.abstractmethod
-    def order(self):
-        pass
-
-    @abc.abstractmethod
-    def step_func(self, func, t, dt, y):
+    def _step_func(self, func, t, dt, y):
         pass
 
     def integrate(self, t):
-        _assert_increasing(t)
-        t = t.type_as(self.y0[0])
         time_grid = self.grid_constructor(self.func, self.y0, t)
         assert time_grid[0] == t[0] and time_grid[-1] == t[-1]
-        time_grid = time_grid.to(self.y0[0])
 
-        solution = [self.y0]
+        solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
+        solution[0] = self.y0
 
         j = 1
         y0 = self.y0
         for t0, t1 in zip(time_grid[:-1], time_grid[1:]):
-            dy = self.step_func(self.func, t0, t1 - t0, y0)
-            y1 = tuple(y0_ + dy_ for y0_, dy_ in zip(y0, dy))
-            y0 = y1
+            dy = self._step_func(self.func, t0, t1 - t0, y0)
+            y1 = y0 + dy
 
             while j < len(t) and t1 >= t[j]:
-                solution.append(self._linear_interp(t0, t1, y0, y1, t[j]))
+                solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
                 j += 1
+            y0 = y1
 
-        return tuple(map(torch.stack, tuple(zip(*solution))))
+        return solution
 
     def _linear_interp(self, t0, t1, y0, y1, t):
         if t == t0:
             return y0
         if t == t1:
             return y1
-        t0, t1, t = t0.to(y0[0]), t1.to(y0[0]), t.to(y0[0])
-        slope = tuple((y1_ - y0_) / (t1 - t0) for y0_, y1_, in zip(y0, y1))
-        return tuple(y0_ + slope_ * (t - t0) for y0_, slope_ in zip(y0, slope))
+        slope = (t - t0) / (t1 - t0)
+        return y0 + slope * (y1 - y0)
+
+
+class RKAdaptiveStepsizeODESolver(AdaptiveStepsizeODESolver):
+    order: int
+    tableau: _ButcherTableau
+    mid: torch.Tensor
+
+    def __init__(self, func, y0, rtol, atol, first_step=None, safety=0.9, ifactor=10.0, dfactor=0.2,
+                 max_num_steps=2 ** 31 - 1, grid_points=None, eps=0., dtype=torch.float64, **kwargs):
+        super(RKAdaptiveStepsizeODESolver, self).__init__(dtype=dtype, y0=y0, **kwargs)
+
+        # We use mixed precision. y has its original dtype (probably float32), whilst all 'time'-like objects use
+        # `dtype` (defaulting to float64).
+        dtype = torch.promote_types(dtype, y0.dtype)
+        device = y0.device
+
+        self.func = lambda t, y: func(t.type_as(y), y)
+        self.rtol = torch.as_tensor(rtol, dtype=dtype, device=device)
+        self.atol = torch.as_tensor(atol, dtype=dtype, device=device)
+        self.first_step = None if first_step is None else torch.as_tensor(first_step, dtype=dtype, device=device)
+        self.safety = torch.as_tensor(safety, dtype=dtype, device=device)
+        self.ifactor = torch.as_tensor(ifactor, dtype=dtype, device=device)
+        self.dfactor = torch.as_tensor(dfactor, dtype=dtype, device=device)
+        self.max_num_steps = torch.as_tensor(max_num_steps, dtype=torch.int32, device=device)
+        grid_points = torch.tensor([], dtype=dtype, device=device) if grid_points is None else grid_points.to(dtype)
+        self.grid_points = grid_points
+        self.eps = torch.as_tensor(eps, dtype=dtype, device=device)
+        self.dtype = dtype
+
+        # Copy from class to instance to set device
+        self.tableau = _ButcherTableau(alpha=self.tableau.alpha.to(device=device, dtype=y0.dtype),
+                                       beta=[b.to(device=device, dtype=y0.dtype) for b in self.tableau.beta],
+                                       c_sol=self.tableau.c_sol.to(device=device, dtype=y0.dtype),
+                                       c_error=self.tableau.c_error.to(device=device, dtype=y0.dtype))
+        self.mid = self.mid.to(device=device, dtype=y0.dtype)
+
+    def _before_integrate(self, t):
+        f0 = self.func(t[0], self.y0)
+        if self.first_step is None:
+            first_step = _select_initial_step(self.func, t[0], self.y0, self.order - 1, self.rtol, self.atol,
+                                              self.norm, f0=f0)
+        else:
+            first_step = self.first_step
+        self.rk_state = _RungeKuttaState(self.y0, f0, t[0], t[0], first_step, [self.y0] * 5)
+        self.next_grid_index = min(bisect.bisect(self.grid_points.tolist(), t[0]), len(self.grid_points) - 1)
+
+    def _advance(self, next_t):
+        """Interpolate through the next time point, integrating as necessary."""
+        n_steps = 0
+        while next_t > self.rk_state.t1:
+            assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
+            self.rk_state = self._adaptive_step(self.rk_state)
+            n_steps += 1
+        return _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t)
+
+    def _adaptive_step(self, rk_state):
+        """Take an adaptive Runge-Kutta step to integrate the ODE."""
+        y0, f0, _, t0, dt, interp_coeff = rk_state
+        # dtypes: self.y0.dtype (probably float32); self.dtype (probably float64)
+        # used for state and timelike objects respectively.
+        # Then:
+        # y0.dtype == self.y0.dtype
+        # f0.dtype == self.y0.dtype
+        # t0.dtype == self.dtype
+        # dt.dtype == self.dtype
+        # for coeff in interp_coeff: coeff.dtype == self.y0.dtype
+
+
+        ########################################################
+        #                      Assertions                      #
+        ########################################################
+        assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
+        assert torch.isfinite(y0).all(), 'non-finite values in state `y`: {}'.format(y0)
+
+        ########################################################
+        #     Make step, respecting prescribed grid points     #
+        ########################################################
+        on_grid = len(self.grid_points) and t0 < self.grid_points[self.next_grid_index] < t0 + dt
+        if on_grid:
+            dt = self.grid_points[self.next_grid_index] - t0
+            eps = min(0.5 * dt, self.eps)
+            dt = dt - eps
+        else:
+            eps = 0
+
+        y1, f1, y1_error, k = _runge_kutta_step(self.func, y0, f0, t0, dt, tableau=self.tableau)
+        # dtypes:
+        # y1.dtype == self.y0.dtype
+        # f1.dtype == self.y0.dtype
+        # y1_error.dtype == self.dtype
+        # k.dtype == self.y0.dtype
+
+        ########################################################
+        #                     Error Ratio                      #
+        ########################################################
+        error_ratio = _compute_error_ratio(y1_error, self.rtol, self.atol, y0, y1, self.norm)
+        accept_step = error_ratio <= 1
+        # dtypes:
+        # error_ratio.dtype == self.dtype
+
+        ########################################################
+        #                   Update RK State                    #
+        ########################################################
+        t_next = t0 + dt + 2 * eps if accept_step else t0
+        y_next = y1 if accept_step else y0
+        if on_grid and accept_step:
+            # We've just passed a discontinuity in f; we should update f to match the side of the discontinuity we're
+            # now on.
+            if eps != 0:
+                f1 = self.func(t_next, y_next)
+            if self.next_grid_index != len(self.grid_points) - 1:
+                self.next_grid_index += 1
+        f_next = f1 if accept_step else f0
+        interp_coeff = self._interp_fit(y0, y1, k, dt) if accept_step else interp_coeff
+        dt_next = _optimal_step_size(dt, error_ratio, self.safety, self.ifactor, self.dfactor, self.order)
+        rk_state = _RungeKuttaState(y_next, f_next, t0, t_next, dt_next, interp_coeff)
+        return rk_state
+
+    def _interp_fit(self, y0, y1, k, dt):
+        """Fit an interpolating polynomial to the results of a Runge-Kutta step."""
+        dt = dt.type_as(y0)
+        y_mid = y0 + k.matmul(dt * self.mid).view_as(y0)
+        f0 = k[..., 0]
+        f1 = k[..., -1]
+        return _interp_fit(y0, y1, y_mid, f0, f1, dt)
 
 
 #####################fixed_grid####################################
 
 class Euler(FixedGridODESolver):
-    '''
-    `y'(t) = f(t, y(t))`
-    `y_{n+1}=y_{n} + \\Delta t .f(t_n, y_n)`
-    '''
+    order = 1
 
-    def step_func(self, func, t, dt, y):
-        return tuple(dt * f_ for f_ in func(t, y))
+    def __init__(self, eps=0., **kwargs):
+        super(Euler, self).__init__(**kwargs)
+        self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
 
-    @property
-    def order(self):
-        return 1
+    def _step_func(self, func, t, dt, y):
+        return dt * func(t + self.eps, y)
 
 
 class Midpoint(FixedGridODESolver):
-    '''
-    `y_{n+1} = y_{n} + \\Delta t .f(t_n+\\frac{1}{2}\\Delta t, y_n + \\frac{1}{2}\\Delta t. f(t_n, y_n))`
-    '''
+    order = 2
 
-    def step_func(self, func, t, dt, y):
-        y_mid = tuple(y_ + f_ * dt / 2 for y_, f_ in zip(y, func(t, y)))
-        return tuple(dt * f_ for f_ in func(t + dt / 2, y_mid))
+    def __init__(self, eps=0., **kwargs):
+        super(Midpoint, self).__init__(**kwargs)
+        self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
 
-    @property
-    def order(self):
-        return 2
+    def _step_func(self, func, t, dt, y):
+        half_dt = 0.5 * dt
+        y_mid = y + func(t + self.eps, y) * half_dt
+        return dt * func(t + half_dt, y_mid)
 
 
 class RK4(FixedGridODESolver):
+    order = 4
 
-    def step_func(self, func, t, dt, y):
-        return rk4_alt_step_func(func, t, dt, y)
+    def __init__(self, eps=0., **kwargs):
+        super(RK4, self).__init__(**kwargs)
+        self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
 
-    @property
-    def order(self):
-        return 4
+    def _step_func(self, func, t, dt, y):
+        return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, y)
+
 
 
 ################## adaptive heun ###############################
 _ADAPTIVE_HEUN_TABLEAU = _ButcherTableau(
-    alpha=[1.],
+    alpha=torch.tensor([1.], dtype=torch.float64),
     beta=[
-        [1.],
+        torch.tensor([1.], dtype=torch.float64),
     ],
-    c_sol=[0.5, 0.5],
-    c_error=[
+    c_sol=torch.tensor([0.5, 0.5], dtype=torch.float64),
+    c_error=torch.tensor([
         0.5,
         -0.5,
-    ],
+    ], dtype=torch.float64),
 )
 
-AH_C_MID = [
+_AH_C_MID = torch.tensor([
     0.5, 0.
-]
+], dtype=torch.float64)
 
 
-def _interp_fit_adaptive_heun(y0, y1, k, dt, tableau=_ADAPTIVE_HEUN_TABLEAU):
-    """Fit an interpolating polynomial to the results of a Runge-Kutta step."""
-    dt = dt.type_as(y0[0])
-    y_mid = tuple(y0_ + _scaled_dot_product(dt, AH_C_MID, k_) for y0_, k_ in zip(y0, k))
-    f0 = tuple(k_[0] for k_ in k)
-    f1 = tuple(k_[-1] for k_ in k)
-    return _interp_fit(y0, y1, y_mid, f0, f1, dt)
-
-
-def _abs_square(x):
-    return torch.mul(x, x)
-
-
-def _ta_append(list_of_tensors, value):
-    """Append a value to the end of a list of PyTorch tensors."""
-    list_of_tensors.append(value)
-    return list_of_tensors
-
-
-class AdaptiveHeunSolver(AdaptiveStepsizeODESolver):
-
-    def __init__(
-        self, func, y0, rtol, atol, first_step=None, safety=0.9, ifactor=10.0, dfactor=0.2, max_num_steps=2**31 - 1,
-        **unused_kwargs
-    ):
-        _handle_unused_kwargs(self, unused_kwargs)
-        del unused_kwargs
-
-        self.func = func
-        self.y0 = y0
-        self.rtol = rtol if _is_iterable(rtol) else [rtol] * len(y0)
-        self.atol = atol if _is_iterable(atol) else [atol] * len(y0)
-        self.first_step = first_step
-        self.safety = _convert_to_tensor(safety, dtype=torch.float64, device=y0[0].device)
-        self.ifactor = _convert_to_tensor(ifactor, dtype=torch.float64, device=y0[0].device)
-        self.dfactor = _convert_to_tensor(dfactor, dtype=torch.float64, device=y0[0].device)
-        self.max_num_steps = _convert_to_tensor(max_num_steps, dtype=torch.int32, device=y0[0].device)
-
-    def before_integrate(self, t):
-        f0 = self.func(t[0].type_as(self.y0[0]), self.y0)
-        if self.first_step is None:
-            first_step = _select_initial_step(self.func, t[0], self.y0, 1, self.rtol[0], self.atol[0], f0=f0).to(t)
-        else:
-            first_step = _convert_to_tensor(self.first_step, dtype=t.dtype, device=t.device)
-        self.rk_state = _RungeKuttaState(self.y0, f0, t[0], t[0], first_step, interp_coeff=[self.y0] * 5)
-
-    def advance(self, next_t):
-        """Interpolate through the next time point, integrating as necessary."""
-        n_steps = 0
-        while next_t > self.rk_state.t1:
-            assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
-            self.rk_state = self._adaptive_heun_step(self.rk_state)
-            n_steps += 1
-        return _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t)
-
-    def _adaptive_heun_step(self, rk_state):
-        """Take an adaptive Runge-Kutta step to integrate the ODE."""
-        y0, f0, _, t0, dt, interp_coeff = rk_state
-        ########################################################
-        #                      Assertions                      #
-        ########################################################
-        assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
-        for y0_ in y0:
-            assert _is_finite(torch.abs(y0_)), 'non-finite values in state `y`: {}'.format(y0_)
-        y1, f1, y1_error, k = _runge_kutta_step(self.func, y0, f0, t0, dt, tableau=_ADAPTIVE_HEUN_TABLEAU)
-
-        ########################################################
-        #                     Error Ratio                      #
-        ########################################################
-        mean_sq_error_ratio = _compute_error_ratio(y1_error, atol=self.atol, rtol=self.rtol, y0=y0, y1=y1)
-        accept_step = (torch.tensor(mean_sq_error_ratio) <= 1).all()
-
-        ########################################################
-        #                   Update RK State                    #
-        ########################################################
-        y_next = y1 if accept_step else y0
-        f_next = f1 if accept_step else f0
-        t_next = t0 + dt if accept_step else t0
-        interp_coeff = _interp_fit_adaptive_heun(y0, y1, k, dt) if accept_step else interp_coeff
-        dt_next = _optimal_step_size(
-            dt, mean_sq_error_ratio, safety=self.safety, ifactor=self.ifactor, dfactor=self.dfactor, order=5
-        )
-        rk_state = _RungeKuttaState(y_next, f_next, t0, t_next, dt_next, interp_coeff)
-        return rk_state
+class AdaptiveHeunSolver(RKAdaptiveStepsizeODESolver):
+    order = 2
+    tableau = _ADAPTIVE_HEUN_TABLEAU
+    mid = _AH_C_MID
 
 
 #############################bosh3############################
 _BOGACKI_SHAMPINE_TABLEAU = _ButcherTableau(
-    alpha=[1/2, 3/4,  1.],
+    alpha=torch.tensor([1/2, 3/4,  1.], dtype=torch.float64),
     beta=[
-        [1/2],
-        [0., 3/4],
-        [2/9, 1/3, 4/9]
+        torch.tensor([1/2], dtype=torch.float64),
+        torch.tensor([0., 3/4], dtype=torch.float64),
+        torch.tensor([2/9, 1/3, 4/9], dtype=torch.float64)
     ],
-    c_sol=[2/9, 1/3, 4/9, 0.],
-    c_error=[2/9-7/24, 1/3-1/4, 4/9-1/3, -1/8],
+    c_sol=torch.tensor([2/9, 1/3, 4/9, 0.], dtype=torch.float64),
+    c_error=torch.tensor([2/9-7/24, 1/3-1/4, 4/9-1/3, -1/8], dtype=torch.float64),
 )
 
-BS_C_MID = [ 0., 0.5,  0., 0.  ]
+_BS_C_MID = torch.tensor([ 0., 0.5,  0., 0.  ], dtype=torch.float64)
 
 
-def _interp_fit_bosh3(y0, y1, k, dt):
-    """Fit an interpolating polynomial to the results of a Runge-Kutta step."""
-    dt = dt.type_as(y0[0])
-    y_mid = tuple(y0_ + _scaled_dot_product(dt, BS_C_MID, k_) for y0_, k_ in zip(y0, k))
-    f0 = tuple(k_[0] for k_ in k)
-    f1 = tuple(k_[-1] for k_ in k)
-    return _interp_fit(y0, y1, y_mid, f0, f1, dt)
-
-
-
-class Bosh3Solver(AdaptiveStepsizeODESolver):
-
-    def __init__(
-        self, func, y0, rtol, atol, first_step=None, safety=0.9, ifactor=10.0, dfactor=0.2, max_num_steps=2**31 - 1,
-        **unused_kwargs
-    ):
-        _handle_unused_kwargs(self, unused_kwargs)
-        del unused_kwargs
-
-        self.func = func
-        self.y0 = y0
-        self.rtol = rtol if _is_iterable(rtol) else [rtol] * len(y0)
-        self.atol = atol if _is_iterable(atol) else [atol] * len(y0)
-        self.first_step = first_step
-        self.safety = _convert_to_tensor(safety, dtype=torch.float64, device=y0[0].device)
-        self.ifactor = _convert_to_tensor(ifactor, dtype=torch.float64, device=y0[0].device)
-        self.dfactor = _convert_to_tensor(dfactor, dtype=torch.float64, device=y0[0].device)
-        self.max_num_steps = _convert_to_tensor(max_num_steps, dtype=torch.int32, device=y0[0].device)
-
-    def before_integrate(self, t):
-        f0 = self.func(t[0].type_as(self.y0[0]), self.y0)
-        if self.first_step is None:
-            first_step = _select_initial_step(self.func, t[0], self.y0, 2, self.rtol[0], self.atol[0], f0=f0).to(t)
-        else:
-            first_step = _convert_to_tensor(self.first_step, dtype=t.dtype, device=t.device)
-        self.rk_state = _RungeKuttaState(self.y0, f0, t[0], t[0], first_step, interp_coeff=[self.y0] * 5)
-
-    def advance(self, next_t):
-        """Interpolate through the next time point, integrating as necessary."""
-        n_steps = 0
-        while next_t > self.rk_state.t1:
-            assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
-            self.rk_state = self._adaptive_bosh3_step(self.rk_state)
-            n_steps += 1
-        return _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t)
-
-    def _adaptive_bosh3_step(self, rk_state):
-        """Take an adaptive Runge-Kutta step to integrate the ODE."""
-        y0, f0, _, t0, dt, interp_coeff = rk_state
-        ########################################################
-        #                      Assertions                      #
-        ########################################################
-        assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
-        for y0_ in y0:
-            assert _is_finite(torch.abs(y0_)), 'non-finite values in state `y`: {}'.format(y0_)
-        y1, f1, y1_error, k = _runge_kutta_step(self.func, y0, f0, t0, dt, tableau=_BOGACKI_SHAMPINE_TABLEAU)
-
-        ########################################################
-        #                     Error Ratio                      #
-        ########################################################
-        mean_sq_error_ratio = _compute_error_ratio(y1_error, atol=self.atol, rtol=self.rtol, y0=y0, y1=y1)
-        accept_step = (torch.tensor(mean_sq_error_ratio) <= 1).all()
-
-        ########################################################
-        #                   Update RK State                    #
-        ########################################################
-        y_next = y1 if accept_step else y0
-        f_next = f1 if accept_step else f0
-        t_next = t0 + dt if accept_step else t0
-        interp_coeff = _interp_fit_bosh3(y0, y1, k, dt) if accept_step else interp_coeff
-        dt_next = _optimal_step_size(
-            dt, mean_sq_error_ratio, safety=self.safety, ifactor=self.ifactor, dfactor=self.dfactor, order=3
-        )
-        rk_state = _RungeKuttaState(y_next, f_next, t0, t_next, dt_next, interp_coeff)
-        return rk_state
+class Bosh3Solver(RKAdaptiveStepsizeODESolver):
+    order = 3
+    tableau = _BOGACKI_SHAMPINE_TABLEAU
+    mid = _BS_C_MID
 
 
 ########################dopri5###############################
 _DORMAND_PRINCE_SHAMPINE_TABLEAU = _ButcherTableau(
-    alpha=[1 / 5, 3 / 10, 4 / 5, 8 / 9, 1., 1.],
+    alpha=torch.tensor([1 / 5, 3 / 10, 4 / 5, 8 / 9, 1., 1.], dtype=torch.float64),
     beta=[
-        [1 / 5],
-        [3 / 40, 9 / 40],
-        [44 / 45, -56 / 15, 32 / 9],
-        [19372 / 6561, -25360 / 2187, 64448 / 6561, -212 / 729],
-        [9017 / 3168, -355 / 33, 46732 / 5247, 49 / 176, -5103 / 18656],
-        [35 / 384, 0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84],
+        torch.tensor([1 / 5], dtype=torch.float64),
+        torch.tensor([3 / 40, 9 / 40], dtype=torch.float64),
+        torch.tensor([44 / 45, -56 / 15, 32 / 9], dtype=torch.float64),
+        torch.tensor([19372 / 6561, -25360 / 2187, 64448 / 6561, -212 / 729], dtype=torch.float64),
+        torch.tensor([9017 / 3168, -355 / 33, 46732 / 5247, 49 / 176, -5103 / 18656], dtype=torch.float64),
+        torch.tensor([35 / 384, 0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84], dtype=torch.float64),
     ],
-    c_sol=[35 / 384, 0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84, 0],
-    c_error=[
+    c_sol=torch.tensor([35 / 384, 0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84, 0], dtype=torch.float64),
+    c_error=torch.tensor([
         35 / 384 - 1951 / 21600,
         0,
         500 / 1113 - 22642 / 50085,
@@ -400,94 +352,121 @@ _DORMAND_PRINCE_SHAMPINE_TABLEAU = _ButcherTableau(
         -2187 / 6784 - -12231 / 42400,
         11 / 84 - 649 / 6300,
         -1. / 60.,
-        ],
+    ], dtype=torch.float64),
 )
 
-DPS_C_MID = [
+DPS_C_MID = torch.tensor([
     6025192743 / 30085553152 / 2, 0, 51252292925 / 65400821598 / 2, -2691868925 / 45128329728 / 2,
     187940372067 / 1594534317056 / 2, -1776094331 / 19743644256 / 2, 11237099 / 235043384 / 2
+], dtype=torch.float64)
+
+
+class Dopri5Solver(RKAdaptiveStepsizeODESolver):
+    order = 5
+    tableau = _DORMAND_PRINCE_SHAMPINE_TABLEAU
+    mid = DPS_C_MID
+
+
+####################dopri8solver#########################################
+A = [1 / 18, 1 / 12, 1 / 8, 5 / 16, 3 / 8, 59 / 400, 93 / 200, 5490023248 / 9719169821, 13 / 20,
+     1201146811 / 1299019798, 1, 1, 1]
+
+B = [
+    [1 / 18],
+
+    [1 / 48, 1 / 16],
+
+    [1 / 32, 0, 3 / 32],
+
+    [5 / 16, 0, -75 / 64, 75 / 64],
+
+    [3 / 80, 0, 0, 3 / 16, 3 / 20],
+
+    [29443841 / 614563906, 0, 0, 77736538 / 692538347, -28693883 / 1125000000, 23124283 / 1800000000],
+
+    [16016141 / 946692911, 0, 0, 61564180 / 158732637, 22789713 / 633445777, 545815736 / 2771057229,
+     -180193667 / 1043307555],
+
+    [39632708 / 573591083, 0, 0, -433636366 / 683701615, -421739975 / 2616292301, 100302831 / 723423059,
+     790204164 / 839813087, 800635310 / 3783071287],
+
+    [246121993 / 1340847787, 0, 0, -37695042795 / 15268766246, -309121744 / 1061227803, -12992083 / 490766935,
+     6005943493 / 2108947869, 393006217 / 1396673457, 123872331 / 1001029789],
+
+    [-1028468189 / 846180014, 0, 0, 8478235783 / 508512852, 1311729495 / 1432422823, -10304129995 / 1701304382,
+     -48777925059 / 3047939560, 15336726248 / 1032824649, -45442868181 / 3398467696, 3065993473 / 597172653],
+
+    [185892177 / 718116043, 0, 0, -3185094517 / 667107341, -477755414 / 1098053517, -703635378 / 230739211,
+     5731566787 / 1027545527, 5232866602 / 850066563, -4093664535 / 808688257, 3962137247 / 1805957418,
+     65686358 / 487910083],
+
+    [403863854 / 491063109, 0, 0, -5068492393 / 434740067, -411421997 / 543043805, 652783627 / 914296604,
+     11173962825 / 925320556, -13158990841 / 6184727034, 3936647629 / 1978049680, -160528059 / 685178525,
+     248638103 / 1413531060, 0],
+
+    [14005451 / 335480064, 0, 0, 0, 0, -59238493 / 1068277825, 181606767 / 758867731, 561292985 / 797845732,
+     -1041891430 / 1371343529, 760417239 / 1151165299, 118820643 / 751138087, -528747749 / 2220607170, 1 / 4]
 ]
 
+C_sol = [14005451 / 335480064, 0, 0, 0, 0, -59238493 / 1068277825, 181606767 / 758867731, 561292985 / 797845732,
+         -1041891430 / 1371343529, 760417239 / 1151165299, 118820643 / 751138087, -528747749 / 2220607170, 1 / 4, 0]
 
-def _interp_fit_dopri5(y0, y1, k, dt, tableau=_DORMAND_PRINCE_SHAMPINE_TABLEAU):
-    """Fit an interpolating polynomial to the results of a Runge-Kutta step."""
-    dt = dt.type_as(y0[0])
-    y_mid = tuple(y0_ + _scaled_dot_product(dt, DPS_C_MID, k_) for y0_, k_ in zip(y0, k))
-    f0 = tuple(k_[0] for k_ in k)
-    f1 = tuple(k_[-1] for k_ in k)
-    return _interp_fit(y0, y1, y_mid, f0, f1, dt)
+C_err = [14005451 / 335480064 - 13451932 / 455176623, 0, 0, 0, 0, -59238493 / 1068277825 - -808719846 / 976000145,
+         181606767 / 758867731 - 1757004468 / 5645159321, 561292985 / 797845732 - 656045339 / 265891186,
+         -1041891430 / 1371343529 - -3867574721 / 1518517206, 760417239 / 1151165299 - 465885868 / 322736535,
+         118820643 / 751138087 - 53011238 / 667516719, -528747749 / 2220607170 - 2 / 45, 1 / 4, 0]
+
+h = 1 / 2
+
+C_mid = [0.] * 14
+
+C_mid[0] = (- 6.3448349392860401388 * (h ** 5) + 22.1396504998094068976 * (h ** 4) - 30.0610568289666450593 * (
+            h ** 3) + 19.9990069333683970610 * (h ** 2) - 6.6910181737837595697 * h + 1.0) / (1 / h)
+
+C_mid[5] = (- 39.6107919852202505218 * (h ** 5) + 116.4422149550342161651 * (h ** 4) - 121.4999627731334642623 * (
+            h ** 3) + 52.2273532792945524050 * (h ** 2) - 7.6142658045872677172 * h) / (1 / h)
+
+C_mid[6] = (20.3761213808791436958 * (h ** 5) - 67.1451318825957197185 * (h ** 4) + 83.1721004639847717481 * (
+            h ** 3) - 46.8919164181093621583 * (h ** 2) + 10.7281392630428866124 * h) / (1 / h)
+
+C_mid[7] = (7.3347098826795362023 * (h ** 5) - 16.5672243527496524646 * (h ** 4) + 9.5724507555993664382 * (
+            h ** 3) - 0.1890893225010595467 * (h ** 2) + 0.5526637063753648783 * h) / (1 / h)
+
+C_mid[8] = (32.8801774352459155182 * (h ** 5) - 89.9916014847245016028 * (h ** 4) + 87.8406057677205645007 * (
+            h ** 3) - 35.7075975946222072821 * (h ** 2) + 4.2186562625665153803 * h) / (1 / h)
+
+C_mid[9] = (- 10.1588990526426760954 * (h ** 5) + 22.6237489648532849093 * (h ** 4) - 17.4152107770762969005 * (
+            h ** 3) + 6.2736448083240352160 * (h ** 2) - 0.6627209125361597559 * h) / (1 / h)
+
+C_mid[10] = (- 12.5401268098782561200 * (h ** 5) + 32.2362340167355370113 * (h ** 4) - 28.5903289514790976966 * (
+            h ** 3) + 10.3160881272450748458 * (h ** 2) - 1.2636789001135462218 * h) / (1 / h)
+
+C_mid[11] = (29.5553001484516038033 * (h ** 5) - 82.1020315488359848644 * (h ** 4) + 81.6630950584341412934 * (
+            h ** 3) - 34.7650769866611817349 * (h ** 2) + 5.4106037898590422230 * h) / (1 / h)
+
+C_mid[12] = (- 41.7923486424390588923 * (h ** 5) + 116.2662185791119533462 * (h ** 4) - 114.9375291377009418170 * (
+            h ** 3) + 47.7457971078225540396 * (h ** 2) - 7.0321379067945741781 * h) / (1 / h)
+
+C_mid[13] = (20.3006925822100825485 * (h ** 5) - 53.9020777466385396792 * (h ** 4) + 50.2558364226176017553 * (
+            h ** 3) - 19.0082099341608028453 * (h ** 2) + 2.3537586759714983486 * h) / (1 / h)
+
+A = torch.tensor(A, dtype=torch.float64)
+B = [torch.tensor(B_, dtype=torch.float64) for B_ in B]
+C_sol = torch.tensor(C_sol, dtype=torch.float64)
+C_err = torch.tensor(C_err, dtype=torch.float64)
+_C_mid = torch.tensor(C_mid, dtype=torch.float64)
+
+_DOPRI8_TABLEAU = _ButcherTableau(alpha=A, beta=B, c_sol=C_sol, c_error=C_err)
 
 
-
-class Dopri5Solver(AdaptiveStepsizeODESolver):
-
-    def __init__(
-            self, func, y0, rtol, atol, first_step=None, safety=0.9, ifactor=10.0, dfactor=0.2, max_num_steps=2**31 - 1,
-            **unused_kwargs
-    ):
-        _handle_unused_kwargs(self, unused_kwargs)
-        del unused_kwargs
-
-        self.func = func
-        self.y0 = y0
-        self.rtol = rtol if _is_iterable(rtol) else [rtol] * len(y0)
-        self.atol = atol if _is_iterable(atol) else [atol] * len(y0)
-        self.first_step = first_step
-        self.safety = _convert_to_tensor(safety, dtype=torch.float64, device=y0[0].device)
-        self.ifactor = _convert_to_tensor(ifactor, dtype=torch.float64, device=y0[0].device)
-        self.dfactor = _convert_to_tensor(dfactor, dtype=torch.float64, device=y0[0].device)
-        self.max_num_steps = _convert_to_tensor(max_num_steps, dtype=torch.int32, device=y0[0].device)
-
-    def before_integrate(self, t):
-        f0 = self.func(t[0].type_as(self.y0[0]), self.y0)
-        if self.first_step is None:
-            first_step = _select_initial_step(self.func, t[0], self.y0, 4, self.rtol[0], self.atol[0], f0=f0).to(t)
-        else:
-            first_step = _convert_to_tensor(self.first_step, dtype=t.dtype, device=t.device)
-        self.rk_state = _RungeKuttaState(self.y0, f0, t[0], t[0], first_step, interp_coeff=[self.y0] * 5)
-
-    def advance(self, next_t):
-        """Interpolate through the next time point, integrating as necessary."""
-        n_steps = 0
-        while next_t > self.rk_state.t1:
-            assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
-            self.rk_state = self._adaptive_dopri5_step(self.rk_state)
-            n_steps += 1
-        return _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t)
-
-    def _adaptive_dopri5_step(self, rk_state):
-        """Take an adaptive Runge-Kutta step to integrate the ODE."""
-        y0, f0, _, t0, dt, interp_coeff = rk_state
-        ########################################################
-        #                      Assertions                      #
-        ########################################################
-        assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
-        for y0_ in y0:
-            assert _is_finite(torch.abs(y0_)), 'non-finite values in state `y`: {}'.format(y0_)
-        y1, f1, y1_error, k = _runge_kutta_step(self.func, y0, f0, t0, dt, tableau=_DORMAND_PRINCE_SHAMPINE_TABLEAU)
-
-        ########################################################
-        #                     Error Ratio                      #
-        ########################################################
-        mean_sq_error_ratio = _compute_error_ratio(y1_error, atol=self.atol, rtol=self.rtol, y0=y0, y1=y1)
-        accept_step = (torch.tensor(mean_sq_error_ratio) <= 1).all()
-
-        ########################################################
-        #                   Update RK State                    #
-        ########################################################
-        y_next = y1 if accept_step else y0
-        f_next = f1 if accept_step else f0
-        t_next = t0 + dt if accept_step else t0
-        interp_coeff = _interp_fit_dopri5(y0, y1, k, dt) if accept_step else interp_coeff
-        dt_next = _optimal_step_size(
-            dt, mean_sq_error_ratio, safety=self.safety, ifactor=self.ifactor, dfactor=self.dfactor, order=5
-        )
-        rk_state = _RungeKuttaState(y_next, f_next, t0, t_next, dt_next, interp_coeff)
-        return rk_state
+class Dopri8Solver(RKAdaptiveStepsizeODESolver):
+    order = 8
+    tableau = _DOPRI8_TABLEAU
+    mid = _C_mid
 
 
 #####################Tsit5Solver########################################
-_TSITOURAS_TABLEAU = _ButcherTableau(
+TSITOURAS_TABLEAU = _ButcherTableau(
     alpha=[0.161, 0.327, 0.9, 0.9800255409045097, 1., 1.],
     beta=[
         [0.161],
@@ -530,7 +509,7 @@ def _interp_eval_tsit5(t0, t1, k, eval_t):
     return y_t
 
 
-def _optimal_rk_step_size(last_step, mean_error_ratio, safety=0.9, ifactor=10.0, dfactor=0.2, order=5):
+def _optimal_step_size(last_step, mean_error_ratio, safety=0.9, ifactor=10.0, dfactor=0.2, order=5):
     """Calculate the optimal size for the next Runge-Kutta step."""
     if mean_error_ratio == 0:
         return last_step * ifactor
@@ -542,11 +521,15 @@ def _optimal_rk_step_size(last_step, mean_error_ratio, safety=0.9, ifactor=10.0,
     return last_step / factor
 
 
+def _abs_square(x):
+    return torch.mul(x, x)
+
+
 class Tsit5Solver(AdaptiveStepsizeODESolver):
 
     def __init__(
         self, func, y0, rtol, atol, first_step=None, safety=0.9, ifactor=10.0, dfactor=0.2, max_num_steps=2**31 - 1,
-        **unused_kwargs
+        grid_points=(), eps=0., **unused_kwargs
     ):
         _handle_unused_kwargs(self, unused_kwargs)
         del unused_kwargs
@@ -560,6 +543,9 @@ class Tsit5Solver(AdaptiveStepsizeODESolver):
         self.ifactor = _convert_to_tensor(ifactor, dtype=torch.float64, device=y0[0].device)
         self.dfactor = _convert_to_tensor(dfactor, dtype=torch.float64, device=y0[0].device)
         self.max_num_steps = _convert_to_tensor(max_num_steps, dtype=torch.int32, device=y0[0].device)
+        self.grid_points = tuple(_convert_to_tensor(point, dtype=torch.float64, device=y0[0].device)
+                                 for point in grid_points)
+        self.eps = _convert_to_tensor(eps, dtype=torch.float64, device=y0[0].device)
 
     def before_integrate(self, t):
         if self.first_step is None:
@@ -571,6 +557,7 @@ class Tsit5Solver(AdaptiveStepsizeODESolver):
             self.func(t[0].type_as(self.y0[0]), self.y0), t[0], t[0], first_step,
             tuple(map(lambda x: [x] * 7, self.y0))
         )
+        self.next_grid_index = min(bisect.bisect(self.grid_points, t[0]), len(self.grid_points) - 1)
 
     def advance(self, next_t):
         """Interpolate through the next time point, integrating as necessary."""
@@ -590,6 +577,18 @@ class Tsit5Solver(AdaptiveStepsizeODESolver):
         assert t0 + dt > t0, 'underflow in dt {}'.format(dt.item())
         for y0_ in y0:
             assert _is_finite(torch.abs(y0_)), 'non-finite values in state `y`: {}'.format(y0_)
+
+        ########################################################
+        #     Make step, respecting prescribed grid points     #
+        ########################################################
+        on_grid = len(self.grid_points) and t0 < self.grid_points[self.next_grid_index] < t0 + dt
+        if on_grid:
+            dt = self.grid_points[self.next_grid_index] - t0
+            eps = min(0.5 * dt, self.eps)
+            dt = dt - eps
+        else:
+            eps = 0
+
         y1, f1, y1_error, k = _runge_kutta_step(self.func, y0, f0, t0, dt, tableau=_TSITOURAS_TABLEAU)
 
         ########################################################
@@ -609,13 +608,21 @@ class Tsit5Solver(AdaptiveStepsizeODESolver):
         ########################################################
         #                   Update RK State                    #
         ########################################################
+        t_next = t0 + dt + 2 * eps if accept_step else t0
         y_next = y1 if accept_step else y0
+        if on_grid and accept_step:
+            if eps != 0:
+                # We've just passed a discontinuity in f; we should update f1 to match the side of the discontinuity
+                # we're now on.
+                f1 = self.func(t_next.type_as(y_next[0]), y_next)
+            if self.next_grid_index != len(self.grid_points) - 1:
+                self.next_grid_index += 1
         f_next = f1 if accept_step else f0
-        t_next = t0 + dt if accept_step else t0
-        dt_next = _optimal_rk_step_size(dt, mean_error_ratio, self.safety, self.ifactor, self.dfactor)
+        dt_next = _optimal_step_size(dt, mean_error_ratio, self.safety, self.ifactor, self.dfactor)
         k_next = k if accept_step else self.rk_state.interp_coeff
         rk_state = _RungeKuttaState(y_next, f_next, t0, t_next, dt_next, k_next)
         return rk_state
+
 
 
 ######################adams#########################
@@ -927,32 +934,53 @@ _DIVISOR = [
     31384184832000, 62768369664000, 32011868528640000, 64023737057280000, 51090942171709440000, 102181884343418880000
 ]
 
+_BASHFORTH_DIVISOR = [torch.tensor([b / divisor for b in bashforth], dtype=torch.float64)
+                      for bashforth, divisor in zip(_BASHFORTH_COEFFICIENTS, _DIVISOR)]
+_MOULTON_DIVISOR = [torch.tensor([m / divisor for m in moulton], dtype=torch.float64)
+                    for moulton, divisor in zip(_MOULTON_COEFFICIENTS, _DIVISOR)]
+
 _MIN_ORDER = 4
 _MAX_ORDER = 12
 _MAX_ITERS = 4
 
 
+# TODO: replace this with PyTorch operations (a little hard because y is a deque being used as a circular buffer)
+def _dot_product(x, y):
+    return sum(xi * yi for xi, yi in zip(x, y))
+
+
 class AdamsBashforthMoulton(FixedGridODESolver):
+    order = 4
 
-    def __init__(
-        self, func, y0, rtol=1e-3, atol=1e-4, implicit=True, max_iters=_MAX_ITERS, max_order=_MAX_ORDER, **kwargs
-    ):
+    def __init__(self, func, y0, rtol=1e-3, atol=1e-4, implicit=True, max_iters=_MAX_ITERS, max_order=_MAX_ORDER,
+                 **kwargs):
         super(AdamsBashforthMoulton, self).__init__(func, y0, **kwargs)
+        assert max_order <= _MAX_ORDER, "max_order must be at most {}".format(_MAX_ORDER)
+        if max_order < _MIN_ORDER:
+            warnings.warn("max_order is below {}, so the solver reduces to `rk4`.".format(_MIN_ORDER))
 
-        self.rtol = rtol
-        self.atol = atol
+        self.rtol = torch.as_tensor(rtol, dtype=y0.dtype, device=y0.device)
+        self.atol = torch.as_tensor(atol, dtype=y0.dtype, device=y0.device)
         self.implicit = implicit
         self.max_iters = max_iters
-        self.max_order = int(min(max_order, _MAX_ORDER))
+        self.max_order = int(max_order)
         self.prev_f = collections.deque(maxlen=self.max_order - 1)
         self.prev_t = None
+
+        self.bashforth = [x.to(y0.device) for x in _BASHFORTH_DIVISOR]
+        self.moulton = [x.to(y0.device) for x in _MOULTON_DIVISOR]
 
     def _update_history(self, t, f):
         if self.prev_t is None or self.prev_t != t:
             self.prev_f.appendleft(f)
             self.prev_t = t
 
-    def step_func(self, func, t, dt, y):
+    def _has_converged(self, y0, y1):
+        """Checks that each element is within the error tolerance."""
+        error_ratio = _compute_error_ratio(torch.abs(y0 - y1), self.rtol, self.atol, y0, y1, _linf_norm)
+        return error_ratio < 1
+
+    def _step_func(self, func, t, dt, y):
         self._update_history(t, func(t, y))
         order = min(len(self.prev_f), self.max_order - 1)
         if order < _MIN_ORDER - 1:
@@ -961,35 +989,29 @@ class AdamsBashforthMoulton(FixedGridODESolver):
             return dy
         else:
             # Adams-Bashforth predictor.
-            bashforth_coeffs = _BASHFORTH_COEFFICIENTS[order]
-            ab_div = _DIVISOR[order]
-            dy = tuple(dt * _scaled_dot_product(1 / ab_div, bashforth_coeffs, f_) for f_ in zip(*self.prev_f))
+            bashforth_coeffs = self.bashforth[order]
+            dy = _dot_product(dt * bashforth_coeffs, self.prev_f).type_as(y)  # bashforth is float64 so cast back
 
             # Adams-Moulton corrector.
             if self.implicit:
-                moulton_coeffs = _MOULTON_COEFFICIENTS[order + 1]
-                am_div = _DIVISOR[order + 1]
-                delta = tuple(dt * _scaled_dot_product(1 / am_div, moulton_coeffs[1:], f_) for f_ in zip(*self.prev_f))
+                moulton_coeffs = self.moulton[order + 1]
+                delta = dt * _dot_product(moulton_coeffs[1:], self.prev_f).type_as(y)  # moulton is float64 so cast back
                 converged = False
                 for _ in range(self.max_iters):
                     dy_old = dy
-                    f = func(t + dt, tuple(y_ + dy_ for y_, dy_ in zip(y, dy)))
-                    dy = tuple(dt * (moulton_coeffs[0] / am_div) * f_ + delta_ for f_, delta_ in zip(f, delta))
-                    converged = _has_converged(dy_old, dy, self.rtol, self.atol)
+                    f = func(t + dt, y + dy)
+                    dy = (dt * (moulton_coeffs[0]) * f).type_as(y) + delta  # moulton is float64 so cast back
+                    converged = self._has_converged(dy_old, dy)
                     if converged:
                         break
                 if not converged:
-                    print('Warning: Functional iteration did not converge. Solution may be incorrect.', file=sys.stderr)
+                    warnings.warn('Functional iteration did not converge. Solution may be incorrect.', file=sys.stderr)
                     self.prev_f.pop()
                 self._update_history(t, f)
             return dy
 
-    @property
-    def order(self):
-        return 4
-
 
 class AdamsBashforth(AdamsBashforthMoulton):
-
     def __init__(self, func, y0, **kwargs):
         super(AdamsBashforth, self).__init__(func, y0, implicit=False, **kwargs)
+
