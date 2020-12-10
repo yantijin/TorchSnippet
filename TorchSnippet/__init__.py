@@ -5,5 +5,6 @@ from . import optim
 from .arg_check import *
 from .core import *
 from .typing_ import *
+from .energy import *
 
 __version__ = '0.0.1'
