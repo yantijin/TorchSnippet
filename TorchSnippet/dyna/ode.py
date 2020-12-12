@@ -327,14 +327,13 @@ class NeuralODE(BaseLayer):
 
         return solution
 
-    def trajectory(self, x: torch.Tensor, s_span: torch.Tensor, method=None, rtol=1e-7, atol=1e-9, solver=None, options=None,
-                   adjoint_rtol=None, adjoint_atol=None,adjoint_method=None, adjoint_options=None, adjoint_params=None):
+    def trajectory(self, x: torch.Tensor, s_span: torch.Tensor, method='odeint', **kwargs):
         if method == 'adjoint':
-            solution = odeint_adjoint(self.func, x, s_span, rtol=rtol, atol=atol, method=solver, options=options,
-                                      adjoint_rtol=adjoint_rtol, adjoint_atol=adjoint_atol, adjoint_method=adjoint_method,
-                                      adjoint_options=adjoint_options, adjoint_params=adjoint_params)
+            solution = odeint_adjoint(self.func, x, s_span, **kwargs)# rtol=rtol, atol=atol, method=solver, options=options,
+                                      # adjoint_rtol=adjoint_rtol, adjoint_atol=adjoint_atol, adjoint_method=adjoint_method,
+                                      # adjoint_options=adjoint_options, adjoint_params=adjoint_params)
         elif method == 'odeint':
-            solution = odeint(self.func, x, s_span, rtol=rtol, atol=atol, method=solver, options=options)
+            solution = odeint(self.func, x, s_span, **kwargs) # rtol=rtol, atol=atol, method=solver, options=options)
         else:
             raise ValueError('Please check parameters `method`, it should be `adjoint` or `odeint`')
 

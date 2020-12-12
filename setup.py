@@ -96,7 +96,8 @@ setup(
             'matplotlib',
             'scikit-image',
             'matplotlib',
-            'progressbar2'
+            'progressbar2',
+            'pytorch-lightning'
         ],
     },
 
