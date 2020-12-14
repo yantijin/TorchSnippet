@@ -25,7 +25,7 @@ SOLVERS = {
 }
 
 
-def odeint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None):
+def odeint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None, last=False):
     """Integrate a system of ordinary differential equations.
 
     Solves the initial value problem for a non-stiff system of first order ODEs:
@@ -69,6 +69,8 @@ def odeint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None):
 
     if shapes is not None:
         solution = _flat_to_shape(solution, (len(t),), shapes)
+    if last:
+        solution = solution[-1]
     return solution
 
 
@@ -220,7 +222,7 @@ class OdeintAdjointMethod(torch.autograd.Function):
 
 
 def odeint_adjoint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None, adjoint_rtol=None, adjoint_atol=None,
-                   adjoint_method=None, adjoint_options=None, adjoint_params=None):
+                   adjoint_method=None, adjoint_options=None, adjoint_params=None, last=False):
 
     # We need this in order to access the variables inside this module,
     # since we have no other way of getting variables along the execution path.
@@ -258,6 +260,8 @@ def odeint_adjoint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None,
 
     if shapes is not None:
         solution = _flat_to_shape(solution, (len(t),), shapes)
+    if last:
+        solution = solution[-1]
     return solution
 
 
@@ -278,13 +282,15 @@ def find_parameters(module):
 
 
 class NeuralODE(BaseLayer):
-    def __init__(self, func):
+    def __init__(self, func, t=None, last=False):
         super(NeuralODE, self).__init__()
         if not isinstance(func, nn.Module):
             raise ValueError('func is required to be an instance of nn.Module.')
         self.func = func
+        self.t = t
+        self.last = last
 
-    def forward(self, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None, adjoint_rtol=None, adjoint_atol=None,
+    def forward(self, y0, t=None, rtol=1e-7, atol=1e-9, method=None, options=None, adjoint_rtol=None, adjoint_atol=None,
                    adjoint_method=None, adjoint_options=None, adjoint_params=None):
         if adjoint_params is None and not isinstance(self.func, nn.Module):
             raise ValueError(
@@ -308,6 +314,12 @@ class NeuralODE(BaseLayer):
 
         # Filter params that don't require gradients.
         adjoint_params = tuple(p for p in adjoint_params if p.requires_grad)
+        if self.t is not None and t is None:
+            t = self.t
+        elif self.t is None and t is not None:
+            pass
+        else:
+            raise ValueError('you should add `t` when define NeuralODE or call a NeuralODE object')
 
         # Normalise to non-tupled input
         shapes, func, y0, t, rtol, atol, method, options = _check_inputs(self.func, y0, t, rtol, atol, method, options,
@@ -324,6 +336,8 @@ class NeuralODE(BaseLayer):
 
         if shapes is not None:
             solution = _flat_to_shape(solution, (len(t),), shapes)
+        if self.last:
+            solution = solution[-1]
 
         return solution
 
