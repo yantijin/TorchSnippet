@@ -124,9 +124,9 @@ class basis_learner(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y= batch
-        t = torch.linspace(0, 1, 2)
-        y_hat = self.model(x, t)
-        print(y.shape, y_hat.shape)
+        # t = torch.linspace(0, 1, 2)
+        y_hat = self.model(x)
+        # print(y.shape, y_hat.shape)
         loss = nn.CrossEntropyLoss()(y_hat, y)
         logs = {'loss': loss}
         return {'loss': loss, 'logs': logs}
@@ -154,7 +154,7 @@ if name == 'basic':
 
     func = ODEFunc()
 
-    basis_model = tsp.dyna.NeuralODE(func).to(device)
+    basis_model = tsp.dyna.NeuralODE(func, t=torch.linspace(0,1,2).to(device), last=True).to(device)
     learn = basis_learner(basis_model)
     trainer = pl.Trainer(min_epochs=200, max_epochs=250, progress_bar_refresh_rate=1)
     trainer.fit(learn)
@@ -183,7 +183,7 @@ elif name == 'gal':
 
     func = ODEFunc()
 
-    basis_model = tsp.dyna.NeuralODE(func).to(device)
+    basis_model = tsp.dyna.NeuralODE(func, t=torch.linspace(0, 1, 2).to(device), last=True).to(device)
     learn = basis_learner(basis_model)
     trainer = pl.Trainer(min_epochs=150, max_epochs=200, progress_bar_refresh_rate=1)
     trainer.fit(learn)
@@ -194,7 +194,7 @@ elif name == 'gal':
     plot_2D_state_space(trajectory, yn, len(X))
     plot_2D_space_depth(s_span, trajectory, yn, len(X))
     plt.show()
-if name == 'stack':
+elif name == 'stack':
     nde = []
     num_pieces = 5
     class ODEFunc(nn.Module):
@@ -211,7 +211,7 @@ if name == 'stack':
 
     for i in range(num_pieces):
         nde.append(
-            tsp.dyna.NeuralODE(ODEFunc()),
+            tsp.dyna.NeuralODE(ODEFunc(), t=torch.linspace(0, 1, 2).to(device), last=True),
         )
     basic_model = nn.Sequential(*nde).to(device)
     learn = basis_learner(basic_model)
@@ -228,3 +228,4 @@ if name == 'stack':
     plot_2D_depth_trajectory(tot_s_span, trajectory, yn, len(X))
     plot_2D_state_space(trajectory, yn, len(X))
     plot_2D_space_depth(tot_s_span, trajectory, yn, len(X))
+    plt.show()
