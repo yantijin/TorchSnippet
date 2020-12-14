@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
+from TorchSnippet.dyna import DepthCat
 import numpy as np
 import TorchSnippet as tsp
 from TorchSnippet.dyna.galerkin import *
@@ -80,24 +80,6 @@ def plot_2D_space_depth(s_span, trajectory, yn, n_lines):
     ax.xaxis._axinfo["grid"]['color'] =  (1,1,1,0)
     ax.yaxis._axinfo["grid"]['color'] =  (1,1,1,0)
     ax.zaxis._axinfo["grid"]['color'] =  (1,1,1,0)
-
-class DepthCat(nn.Module):
-    """Depth variable `s` concatenation module. Allows for easy concatenation of `s` each call of the numerical solver, at specified layers of the DEFunc.
-
-    :param idx_cat: index of the data dimension to concatenate `s` to.
-    :type idx_cat: int
-    """
-
-    def __init__(self, s=1, idx_cat=1):
-        super().__init__()
-        self.idx_cat = idx_cat
-        self.s = s
-
-    def forward(self, x):
-        s_shape = list(x.shape)
-        s_shape[self.idx_cat] = 1
-        self.s = self.s * torch.ones(s_shape).to(x)
-        return torch.cat([x, self.s], self.idx_cat).to(x)
 
 
 X, yn = generate_moons(n_samples=512, noise=0.1)
