@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .solvers import *
 from .misc import _check_inputs, _flat_to_shape, _rms_norm, _mixed_linf_rms_norm, _wrap_norm
+from .utils import defunc
 from TorchSnippet.Layers import BaseLayer
 
 __all__ = [
@@ -282,11 +283,15 @@ def find_parameters(module):
 
 
 class NeuralODE(BaseLayer):
-    def __init__(self, func, t=None, last=False):
+    def __init__(self, func, t=None, last=False, order=1):
         super(NeuralODE, self).__init__()
-        if not isinstance(func, nn.Module):
-            raise ValueError('func is required to be an instance of nn.Module.')
-        self.func = func
+        # if not isinstance(func, nn.Module):
+        #     raise ValueError('func is required to be an instance of nn.Module.')
+        if func.forward.__code__.co_argcount == 3:
+            self.func = func
+        else:
+            self.func = defunc(func, order=order)
+            print(self.func)
         self.t = t
         self.last = last
 
