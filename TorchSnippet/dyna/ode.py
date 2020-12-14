@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from .solvers import *
 from .misc import _check_inputs, _flat_to_shape, _rms_norm, _mixed_linf_rms_norm, _wrap_norm
-from .utils import defunc
+from .odefunc import defunc
 from TorchSnippet.Layers import BaseLayer
 
 __all__ = [

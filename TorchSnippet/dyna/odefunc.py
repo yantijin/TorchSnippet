@@ -103,3 +103,25 @@ class ODEfunc(nn.Module):
             divergence -= torch.ones_like(divergence) * torch.tensor(np.prod(y.shape[1:]), dtype=torch.float32
                                                                      ).to(divergence)
         return tuple([dy, -divergence] + [torch.zeros_like(s_).requires_grad_(True) for s_ in states[2:]])
+
+
+class defunc(nn.Module):
+    def __init__(self, net, order=1):
+        super(defunc, self).__init__()
+        self.net = net
+        self.order = order
+
+    def forward(self, s, y):
+        if self.order > 1:
+            return self.high_order_forward(s, y)
+        else:
+            return self.net(y)
+
+    def high_order_forward(self, s, y):
+        y_new = []
+        size_order = y.shape[-1] // self.order
+        for i in range(1, self.order):
+            y_new.append(y[..., size_order*i:size_order*(i+1)])
+        y_new.append(self.net(y))
+        out = torch.cat(y_new, dim=-1).to(y)
+        return out
