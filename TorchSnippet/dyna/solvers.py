@@ -6,7 +6,7 @@ import bisect
 import warnings
 from .misc import  _handle_unused_kwargs, _scaled_dot_product, _is_iterable, _interp_fit,\
     _convert_to_tensor, _select_initial_step, _interp_evaluate, _compute_error_ratio, \
-    _optimal_step_size, _has_converged,_is_finite
+    _optimal_step_size, _has_converged,_is_finite, _linf_norm
 from .rk_common import (_ButcherTableau, rk4_alt_step_func, rk4_step_func,
                         _runge_kutta_step, _RungeKuttaState)
 
@@ -466,7 +466,7 @@ class Dopri8Solver(RKAdaptiveStepsizeODESolver):
 
 
 #####################Tsit5Solver########################################
-TSITOURAS_TABLEAU = _ButcherTableau(
+_TSITOURAS_TABLEAU = _ButcherTableau(
     alpha=[0.161, 0.327, 0.9, 0.9800255409045097, 1., 1.],
     beta=[
         [0.161],
