@@ -1,2 +1,2 @@
-from .hamilton import HNN
-from .lagrange import LNN
+from .hamilton import *
+from .lagrange import *
