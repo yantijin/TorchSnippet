@@ -217,6 +217,7 @@ def Gen_Data():
     datau = [torch.cat(datau[j]) for j in range(nsteps + 1)]
     datau = torch.cat(datau, dim=-1).float()
     datat = torch.tensor(datat).float()
+    print(type(datau))
     hf = h5py.File(os.path.join(data_root, "data.h5"), "w")
     hf.create_dataset('u', data=datau)
     hf.create_dataset('dt', data=datat)
@@ -240,6 +241,7 @@ def Gen_Data():
             qT, pT, xT, yT = Nonsep_SymInt(qT, pT, xT, yT, dtp, f_true.forward, epsT)
             qpxyT.append(torch.cat([qT, pT, xT, yT], dim=1))
     torch.save(torch.cat(qpxyT), 'test.dat')
+
     qpxyT0 = []
     qpxyT1 = []
     print('validation data')
@@ -298,6 +300,7 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, data_type):
         f = h5py.File('data.h5')
         self.u = f['u'][:]
+        print('fhkladsf', type(self.u))
         self.dt = f['dt'][:]
         split = int(self.u.shape[0] * 0.9)
         if data_type == 'train':
@@ -329,7 +332,7 @@ loss_func = func.l1_loss
 
 def train(model):
     # writer = SummaryWriter()
-
+    # 定义优化器
     if (model == "model_baseline.pt"):
         optimizer = torch.optim.Adam(f_neur_baseline.parameters(), lr=l_r)
     elif (model == "model_hnn.pt"):
@@ -337,6 +340,8 @@ def train(model):
     elif (model == "model_nssnn.pt"):
         optimizer = torch.optim.Adam(f_neur_nssnn.parameters(), lr=l_r)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
+
+    # 定义dataloader
     if (model == "model_hnn.pt"):
         train_data_loader = torch.utils.data.DataLoader(Dataset_HNN('train'), batch_size=512, shuffle=True)
         test_data_loader = torch.utils.data.DataLoader(Dataset_HNN('test'), batch_size=512, shuffle=True)
@@ -345,6 +350,8 @@ def train(model):
         test_data_loader = torch.utils.data.DataLoader(Dataset('test'), batch_size=512, shuffle=True)
     lowest_test_loss = 99999
     loss_data = []
+
+    # 开始训练
     for i in range(1001):
         train_loss = 0
         train_sample = 0
