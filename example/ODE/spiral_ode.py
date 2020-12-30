@@ -81,6 +81,7 @@ for i in range(1, niters+1):
         y_test = model(true_y0, t_grid)
         y_test = torch.squeeze(y_test)
         plot_spiral([yN, y_test.detach().numpy()])
+        print(loss.detach().cpu().numpy())
 
 
 

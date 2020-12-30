@@ -171,11 +171,11 @@ pN = qpxyT[0:1, 1:2, :].to(device)
 xN = qpxyT[0:1, 2:3, :].to(device)
 yN = qpxyT[0:1, 3:4, :].to(device)
 qpxyN = [torch.cat([qN, pN, xN, yN], dim=1).detach().cpu()]
-
-for i in range(20000):
-    qN, pN, xN, yN = nonsep_symint(qN, pN, xN, yN, torch.tensor([2000 / 20000]).to(device), func.forward, 0.02)
-    qpxyN.append(torch.cat([qN, pN, xN, yN], dim=1).detach().cpu())
-qpxyN = torch.cat(qpxyN)
+with torch.no_grad():
+    for i in range(2000):
+        qN, pN, xN, yN = nonsep_symint(qN, pN, xN, yN, torch.tensor([2000 / 20000]).to(device), func.forward, 0.02)
+        qpxyN.append(torch.cat([qN, pN, xN, yN], dim=1).detach().cpu())
+    qpxyN = torch.cat(qpxyN)
 qpxyN = qpxyN.detach().cpu().numpy()
 qpxyT = qpxyT.detach().cpu().numpy()
 plt.clf()
